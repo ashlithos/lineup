@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LineUp · researched but not booked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f4f6f8;--raised:#fff;--ink:#21242c;--soft:#5c636f;--faint:#69717f;
+    --line:#e4e7ec;--strong:#d3d7df;--accent:#6e5ec8;--accent-soft:#f1effe;
+    --ok:#087d4a;--ok-soft:#e4f7ec;--soon:#9b6109;--soon-soft:#faf0dc;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Figtree",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:32px 18px 90px}
+  .wrap{max-width:1140px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 7px}
+  .lede{color:var(--soft);font-size:15px;margin:0 0 8px;max-width:74ch;line-height:1.55}
+  .note{font-size:13px;color:var(--faint);margin:0 0 32px}
+  section{margin:0 0 42px;padding-bottom:36px;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 5px}
+  .sec-n{font-family:"DM Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+  h2{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .sec-sub{color:var(--soft);font-size:14px;margin:6px 0 20px;line-height:1.55;max-width:78ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+  .opt{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:15px 14px 17px}
+  .opt-h{display:flex;align-items:center;gap:7px;margin:0 0 4px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+  .tag.a{background:var(--accent-soft);color:var(--accent)}
+  .tag.rec{background:var(--ok-soft);color:var(--ok)}
+  .opt-name{font-size:14px;font-weight:600;margin-bottom:2px}
+  .opt-desc{font-size:12.5px;color:var(--soft);line-height:1.5;margin:0 0 12px;min-height:52px}
+  .stage{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:13px 12px}
+  .against{font-size:11.5px;color:var(--faint);line-height:1.45;border-top:1px solid var(--line);padding-top:9px;margin-top:11px}
+  .against b{color:var(--soft)}
+
+  /* the state chip */
+  .tb{display:inline-flex;align-items:center;gap:4px;border:1px dashed var(--accent);color:var(--accent);
+    background:transparent;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:600}
+  .who{display:inline-flex;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);
+    color:var(--soft);border-radius:99px;padding:1px 8px;font-size:10px;font-weight:500}
+
+  /* timetable column */
+  .cal{display:grid;grid-template-columns:34px 1fr 1fr;gap:6px}
+  .colhead{text-align:center;padding-bottom:5px}
+  .colhead .wd{font-size:12.5px;font-weight:600}
+  .colhead .dm{font-size:10.5px;color:var(--faint)}
+  .colhead .ct{font-size:10px;color:var(--soft);margin-top:1px}
+  .gut{position:relative;height:330px}
+  .gut span{position:absolute;right:2px;transform:translateY(-50%);font-size:9px;color:var(--faint);font-family:"DM Mono",monospace}
+  .col{position:relative;height:330px;border:1px solid var(--line);border-radius:8px;background:var(--raised);overflow:hidden}
+  .nite{position:absolute;left:0;right:0;background:rgba(33,36,44,.045)}
+  .hr{position:absolute;left:0;right:0;border-top:1px solid rgba(228,231,236,.7)}
+  .blk{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 5px;font-size:9px;overflow:hidden;line-height:1.25}
+  .blk.tr{background:var(--strong);color:var(--ink)}
+  .blk.ev{background:var(--accent);color:#fff}
+  .blk.meal{background:var(--ok-soft);color:var(--ok);border:1px solid rgba(8,125,74,.25)}
+  .blk.hold{background:repeating-linear-gradient(135deg,rgba(110,94,200,.06),rgba(110,94,200,.06) 5px,transparent 5px,transparent 10px);
+    border:1px dashed var(--accent);color:var(--accent)}
+  .blk b{font-weight:600;display:block}
+  .freelab{position:absolute;left:0;right:0;text-align:center;font-size:9px;font-weight:600;color:var(--soft)}
+
+  /* checklist */
+  .row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:none}
+  .box{width:16px;height:16px;flex:0 0 16px;border:1.5px solid var(--strong);border-radius:4px;margin-top:1px}
+  .box.done{background:var(--ok);border-color:var(--ok);position:relative}
+  .box.done::after{content:"✓";color:#fff;font-size:11px;position:absolute;top:-2px;left:2px}
+  .row .m{flex:1;min-width:0}
+  .row .t{font-size:13px;font-weight:500;line-height:1.3}
+  .row .t.done{text-decoration:line-through;color:var(--faint);font-weight:400}
+  .row .s{font-size:11px;color:var(--faint);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .time{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--soft);flex:0 0 62px;padding-top:2px}
+
+  /* paste flow */
+  .paste{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .paste-h{background:var(--paper);padding:8px 11px;font-size:12px;font-weight:600;border-bottom:1px solid var(--line)}
+  .paste-b{padding:10px 11px;font-family:"DM Mono",monospace;font-size:10px;color:var(--faint);line-height:1.5;
+    max-height:96px;overflow:hidden;background:var(--raised)}
+  .arrow{text-align:center;color:var(--faint);font-size:16px;padding:6px 0}
+  .found{border:1px solid var(--accent);border-radius:10px;padding:9px 11px;background:var(--accent-soft)}
+  .found .h{font-size:11.5px;font-weight:600;color:var(--accent);margin-bottom:6px}
+  .found .i{display:flex;gap:7px;font-size:11.5px;padding:3px 0;align-items:center}
+  .found .i .tm{font-family:"DM Mono",monospace;font-size:10px;color:var(--soft);flex:0 0 46px}
+
+  .why{margin-top:20px;background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:13px 15px;font-size:13px;color:var(--soft);line-height:1.6}
+  .why b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;background:var(--raised);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin-top:10px}
+  th{text-align:left;padding:8px 11px;background:var(--paper);font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border-bottom:1px solid var(--line)}
+  td{padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+  tr:last-child td{border-bottom:none}
+  code{font-family:"DM Mono",monospace;font-size:11px;background:var(--paper);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Researched, but not booked yet</h1>
+  <p class="lede">Your Niagara day is a third kind of thing. It isn't a <b>booking</b> — nothing is reserved. But it isn't a <b>plan</b> either, the way "Vegas trip" is: it has a real date, real times, and it sits inside a trip you've already booked. LineUp has nowhere to put it.</p>
+  <p class="note">Using your actual Sept 18 Niagara itinerary · inside Canada Sep</p>
+
+  <!-- ===== 01 THE STATE ===== -->
+  <section>
+    <div class="sec-h"><span class="sec-n">01</span><h2>A third state: <span style="color:var(--accent)">to book</span></h2></div>
+    <p class="sec-sub">One new status, drawn the same way everywhere: dashed outline, hatched fill, never solid. Solid means someone has your money. Dashed means someone still has to act.</p>
+    <table>
+      <tr><th style="width:16%">State</th><th style="width:26%">Looks like</th><th>Means</th></tr>
+      <tr><td><b>Booked</b></td><td><span style="display:inline-block;width:74px;height:18px;border-radius:5px;background:var(--accent)"></span></td><td>Confirmed, in your inbox, has a confirmation number. What LineUp holds today.</td></tr>
+      <tr><td><b>To book</b> <span class="tag rec" style="margin-left:2px">new</span></td><td><span style="display:inline-block;width:74px;height:18px;border-radius:5px;border:1px dashed var(--accent);background:repeating-linear-gradient(135deg,rgba(110,94,200,.06),rgba(110,94,200,.06) 5px,transparent 5px,transparent 10px)"></span></td><td>Decided and scheduled, but nobody has reserved it. Can carry a <b>who's booking it</b>.</td></tr>
+      <tr><td><b>Plan</b></td><td><span style="display:inline-block;width:74px;height:18px;border-radius:5px;background:var(--paper);border:1px solid var(--line)"></span></td><td>An idea with no fixed date — "Vegas trip", "Japan with parents". Unchanged.</td></tr>
+    </table>
+  </section>
+
+  <!-- ===== 02 WHERE IT SHOWS ===== -->
+  <section>
+    <div class="sec-h"><span class="sec-n">02</span><h2>Where it shows up</h2></div>
+    <p class="sec-sub">Three placements. They aren't exclusive — A and B are the same items seen from the two tabs you already have.</p>
+    <div class="grid">
+
+      <!-- A -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option A</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Ghost blocks in the Timetable</div>
+        <div class="opt-desc">Your researched day drops straight into the free space, dashed instead of solid. You immediately see whether the plan actually fits the day — and what it costs you in free hours.</div>
+        <div class="stage">
+          <div class="cal">
+            <div></div>
+            <div class="colhead"><div class="wd">Fri</div><div class="dm">Sep 18</div><div class="ct">Toronto · before</div></div>
+            <div class="colhead"><div class="wd">Fri</div><div class="dm">Sep 18</div><div class="ct" style="color:var(--accent);font-weight:600">Niagara day added</div></div>
+
+            <div class="gut">
+              <span style="top:0%">7am</span><span style="top:25%">11am</span><span style="top:50%">3pm</span><span style="top:75%">7pm</span><span style="top:99%">11pm</span>
+            </div>
+
+            <!-- BEFORE -->
+            <div class="col">
+              <div class="nite" style="top:0;height:0%"></div>
+              <div class="nite" style="top:77.6%;bottom:0"></div>
+              <div class="hr" style="top:25%"></div><div class="hr" style="top:50%"></div><div class="hr" style="top:75%"></div>
+              <div class="blk meal" style="top:31.25%;height:6.25%">Lunch</div>
+              <div class="blk meal" style="top:75%;height:9.4%">Dinner</div>
+              <div class="freelab" style="top:12%">5h free</div>
+              <div class="freelab" style="top:55%">6h free</div>
+            </div>
+
+            <!-- AFTER -->
+            <div class="col">
+              <div class="nite" style="top:77.6%;bottom:0"></div>
+              <div class="hr" style="top:25%"></div><div class="hr" style="top:50%"></div><div class="hr" style="top:75%"></div>
+              <div class="blk hold" style="top:8.1%;height:13.5%"><b>GO train → Niagara</b>8:20–10:30</div>
+              <div class="blk hold" style="top:21.9%;height:6.2%"><b>WEGO → NOTL</b>10:30–11:30</div>
+              <div class="blk hold" style="top:28.1%;height:12.5%"><b>Niagara-on-the-Lake</b>11:30–13:30 · lunch</div>
+              <div class="blk hold" style="top:45.3%;height:9.4%"><b>Niagara City Cruises</b>14:15–15:45</div>
+              <div class="blk hold" style="top:54.7%;height:9.4%"><b>Journey Behind the Falls</b>15:45–17:15</div>
+              <div class="blk hold" style="top:64.1%;height:12.5%"><b>Table Rock House</b>17:15–19:15 · dinner</div>
+              <div class="blk hold" style="top:79.7%;height:8%"><b>GO back to Toronto</b>19:45</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line);font-size:10.5px;color:var(--soft);flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:9px;border-radius:2px;border:1px dashed var(--accent);background:repeating-linear-gradient(135deg,rgba(110,94,200,.06),rgba(110,94,200,.06) 4px,transparent 4px,transparent 8px)"></span>to book</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:9px;border-radius:2px;background:var(--accent)"></span>booked</span>
+            <span style="font-weight:600;color:var(--ink)">Free time: 12h 30m → 1h 15m</span>
+          </div>
+        </div>
+        <div class="against"><b>Against:</b> a densely-researched day fills the column, so the free-time reading is less useful on exactly the days you've planned most.</div>
+      </div>
+
+      <!-- B -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option B</span><span class="tag rec">pairs with A</span></div>
+        <div class="opt-name">A "to book" list on the trip</div>
+        <div class="opt-desc">The same items as a checklist in the Itinerary tab, grouped under the day. Each one can be assigned, so you can hand the whole list to Ken and watch it tick down.</div>
+        <div class="stage">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+            <span style="font-size:14px;font-weight:600">Fri, Sep 18 · Niagara Falls</span>
+            <span class="tb">4 to book</span>
+          </div>
+          <div class="row"><span class="time">08:20</span><span class="box done"></span><div class="m">
+            <div class="t done">GO + WEGO 1-day travel package</div>
+            <div class="s"><span class="who">👤 Ken</span> booked yesterday</div></div></div>
+          <div class="row"><span class="time">14:15</span><span class="box"></span><div class="m">
+            <div class="t">Niagara City Cruises</div>
+            <div class="s"><span class="tb">to book</span><span class="who">👤 Ken</span> · timed entry, sells out</div></div></div>
+          <div class="row"><span class="time">15:45</span><span class="box"></span><div class="m">
+            <div class="t">Journey Behind the Falls</div>
+            <div class="s"><span class="tb">to book</span><span class="who">👤 Ken</span></div></div></div>
+          <div class="row"><span class="time">17:15</span><span class="box"></span><div class="m">
+            <div class="t">Table Rock House Restaurant</div>
+            <div class="s"><span class="tb">to book</span><span class="who">👤 you</span> · request a window table</div></div></div>
+          <div class="row"><span class="time">11:30</span><span class="box"></span><div class="m">
+            <div class="t">Lunch in Niagara-on-the-Lake</div>
+            <div class="s"><span style="color:var(--faint)">no booking needed</span></div></div></div>
+        </div>
+        <div class="against"><b>Against:</b> on its own you can't tell whether the day is over-stuffed — which is what A shows.</div>
+      </div>
+
+      <!-- C -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option C</span></div>
+        <div class="opt-name">Keep it in the Plan tab</div>
+        <div class="opt-desc">The researched day lives in Plan, linked to Canada Sep, and only moves into the trip once booked. Strictest separation of booked and not-booked.</div>
+        <div class="stage">
+          <div style="border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:var(--raised)">
+            <div style="font-size:13.5px;font-weight:600">Niagara day</div>
+            <div style="font-size:11.5px;color:var(--faint);margin-top:2px">Part of Canada Sep · Fri, Sep 18</div>
+            <div style="height:5px;background:var(--paper);border-radius:99px;margin:9px 0 6px;overflow:hidden">
+              <div style="width:20%;height:100%;background:var(--ok)"></div>
+            </div>
+            <div style="font-size:11px;color:var(--soft)">1 of 5 booked · assigned to Ken</div>
+          </div>
+          <div style="margin-top:9px;font-size:11px;color:var(--faint);line-height:1.5">
+            The Timetable for Sep 18 still shows 12h 30m free — the plan lives somewhere else, so the day looks emptier than it really is.
+          </div>
+        </div>
+        <div class="against"><b>Against:</b> the Plan tab is for trips you haven't taken yet. Putting a day of a booked trip there splits one trip across two tabs — the thing you told me earlier works against you.</div>
+      </div>
+    </div>
+
+    <div class="why"><b>Why A + B together:</b> they're one dataset seen from the two tabs you already have. The Timetable answers "does this day actually work, and what have I got left?" — which is why you asked for that view in the first place. The checklist answers "what still needs doing, and who's doing it." Neither alone covers both.<br><br>
+    <b>C is the one I'd avoid</b>, for the reason you gave me earlier about managing everything in one place: a booked trip whose plans live in a different tab is exactly the split you didn't want.</div>
+  </section>
+
+  <!-- ===== 03 GETTING IT IN ===== -->
+  <section style="border-bottom:none">
+    <div class="sec-h"><span class="sec-n">03</span><h2>Getting it in without retyping nine rows</h2></div>
+    <p class="sec-sub">You already have a Paste flow that reads a confirmation email. The same machinery can read the itinerary an AI hands you — it's the same job, just a different shape of text.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Flow</span></div>
+        <div class="opt-desc" style="min-height:auto">Paste the markdown table you got from your AI chat. It comes back as dated, timed items marked "to book" — you confirm before anything is saved.</div>
+        <div class="stage">
+          <div class="paste">
+            <div class="paste-h">Paste a plan</div>
+            <div class="paste-b">| 08:20 – 10:30 | Toronto Union 🚆 Niagara Falls GO | GO + WEGO 1-Day Package |<br>| 14:15 – 15:45 | Niagara City Cruises | red ponchos, Horseshoe Falls |<br>| 15:45 – 17:15 | Journey Behind the Falls | Table Rock Centre tunnels |<br>| 17:15 – 19:15 | Dinner with a View | Table Rock House Restaurant |…</div>
+          </div>
+          <div class="arrow">↓</div>
+          <div class="found">
+            <div class="h">Found 7 items for Fri, Sep 18 · which need booking?</div>
+            <div class="i"><span class="tm">08:20</span><span class="box" style="width:13px;height:13px;flex:0 0 13px;background:var(--accent);border-color:var(--accent)"></span>GO + WEGO travel package</div>
+            <div class="i"><span class="tm">14:15</span><span class="box" style="width:13px;height:13px;flex:0 0 13px;background:var(--accent);border-color:var(--accent)"></span>Niagara City Cruises</div>
+            <div class="i"><span class="tm">15:45</span><span class="box" style="width:13px;height:13px;flex:0 0 13px;background:var(--accent);border-color:var(--accent)"></span>Journey Behind the Falls</div>
+            <div class="i"><span class="tm">17:15</span><span class="box" style="width:13px;height:13px;flex:0 0 13px;background:var(--accent);border-color:var(--accent)"></span>Table Rock House Restaurant</div>
+            <div class="i" style="opacity:.55"><span class="tm">11:30</span><span class="box" style="width:13px;height:13px;flex:0 0 13px"></span>Explore Niagara-on-the-Lake</div>
+            <div class="i" style="opacity:.55"><span class="tm">13:30</span><span class="box" style="width:13px;height:13px;flex:0 0 13px"></span>WEGO back to the Falls</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">The rules</span></div>
+        <div class="opt-desc" style="min-height:auto">What the extractor may and may not do with a plan, so nothing invented ends up looking like a reservation.</div>
+        <div class="stage" style="font-size:12.5px;color:var(--soft);line-height:1.6">
+          <p style="margin:0 0 9px"><b style="color:var(--ink)">Never marked booked.</b> Everything from a pasted plan lands as "to book". Only an email with a confirmation number can create a real booking.</p>
+          <p style="margin:0 0 9px"><b style="color:var(--ink)">No invented prices.</b> A plan has no amount, no confirmation code, no cancellation deadline. Those fields stay empty until you actually book.</p>
+          <p style="margin:0 0 9px"><b style="color:var(--ink)">Times are taken, not guessed.</b> If a row has no time it becomes an undated item on that day rather than being slotted somewhere plausible.</p>
+          <p style="margin:0"><b style="color:var(--ink)">You confirm first.</b> Same review sheet as the inbox scan — nothing is written until you say so.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="why"><b>One more thing this unlocks.</b> Once a "to book" item exists with a date, the plan check can watch it for you: a timed-entry attraction still unbooked a week out, two things overlapping at 15:45, or a dinner reservation on a night you're in a different city. That's the same rules engine you already have — it just gets something new to look at.</div>
+  </section>
+</div>
+</body>
+</html>

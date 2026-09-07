@@ -97,6 +97,11 @@ export function ReviewSheet({
                       <span className="truncate text-[15px] font-medium text-ink">
                         {c.draft.title}
                       </span>
+                      {c.draft.status === "tobook" && (
+                        <span className="shrink-0 rounded-full border border-dashed border-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                          to book
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <RefundBadge booking={c.draft as Booking} />

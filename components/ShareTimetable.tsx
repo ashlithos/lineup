@@ -16,6 +16,9 @@ const TONE: Record<string, string> = {
   event: "bg-accent text-white",
   meal: "bg-ok-soft text-ok border border-ok/25",
   unknown: "bg-soon-soft text-soon border border-dashed border-soon/60",
+  // Researched but not reserved: never a solid fill, so it can't be mistaken
+  // for something someone is holding for you.
+  hold: "border border-dashed border-accent text-accent bg-accent-soft/40",
 };
 
 const weekday = (iso: string) =>
@@ -206,6 +209,7 @@ export async function ShareTimetable({ bookings }: { bookings: Booking[] }) {
           ["bg-raised border border-line", "free"],
           ["bg-line-strong", "travelling"],
           ["bg-accent", "booked"],
+          ["border border-dashed border-accent bg-accent-soft/40", "to book"],
           ["bg-ok-soft border border-ok/25", "meals"],
           ["bg-ink/[0.045] border border-line", "after dark"],
         ].map(([c, label]) => (

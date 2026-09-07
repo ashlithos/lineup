@@ -23,6 +23,9 @@ const TONE: Record<Block["kind"], string> = {
   event: "bg-accent text-white",
   meal: "bg-ok-soft text-ok border border-ok/25",
   unknown: "bg-soon-soft text-soon border border-dashed border-soon/60",
+  // Researched but not reserved: never a solid fill, so it can't be mistaken
+  // for something someone is holding for you.
+  hold: "border border-dashed border-accent text-accent bg-accent-soft/40",
 };
 
 const weekday = (iso: string) =>
@@ -290,7 +293,8 @@ export function WeekGrid({
         {[
           ["bg-raised border border-line", "free"],
           ["bg-line-strong", "travel"],
-          ["bg-accent", "booked event"],
+          ["bg-accent", "booked"],
+          ["border border-dashed border-accent bg-accent-soft/40", "to book"],
           ["bg-ok-soft border border-ok/25", "meal window"],
         ].map(([c, label]) => (
           <span key={label} className="flex items-center gap-1.5 text-[11px] text-ink-soft">

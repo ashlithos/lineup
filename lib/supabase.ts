@@ -23,6 +23,7 @@ export interface BookingRow {
   check_out: string | null;
   arrive_at: string | null;
   duration_min: number | null;
+  assignee: string | null;
   amount: number | null;
   currency: string;
   refundable: boolean;
@@ -54,6 +55,7 @@ export function rowToBooking(r: BookingRow): Booking {
     checkOut: r.check_out ?? undefined,
     arriveAt: r.arrive_at ?? undefined,
     durationMin: r.duration_min ?? undefined,
+    assignee: r.assignee ?? undefined,
     amount: r.amount ?? undefined,
     currency: r.currency,
     refundable: r.refundable,
@@ -82,6 +84,7 @@ export function bookingToRow(b: Partial<Booking>): Partial<BookingRow> {
   if (b.checkOut !== undefined) row.check_out = b.checkOut ?? null;
   if (b.arriveAt !== undefined) row.arrive_at = b.arriveAt ?? null;
   if (b.durationMin !== undefined) row.duration_min = b.durationMin ?? null;
+  if (b.assignee !== undefined) row.assignee = b.assignee ?? null;
   if (b.amount !== undefined) row.amount = b.amount ?? null;
   if (b.currency !== undefined) row.currency = b.currency;
   if (b.refundable !== undefined) row.refundable = b.refundable;

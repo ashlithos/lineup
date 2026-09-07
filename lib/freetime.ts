@@ -9,7 +9,7 @@ export const DAY_END = 23 * 60; // 23:00 — how far the grid draws
 export const PLAN_END = 22 * 60; // 22:00 — nothing gets planned after this
 const MIN_FREE = 45; // a shorter gap isn't really usable
 
-export type BlockKind = "travel" | "event" | "meal" | "unknown";
+export type BlockKind = "travel" | "event" | "meal" | "unknown" | "hold";
 
 export interface Block {
   key: string;
@@ -107,12 +107,20 @@ export function buildWeek(
         for (const [i, leg] of legs.entries()) {
           if (dayOf(leg.dep) !== d) continue;
           const start = clamp(minsOf(leg.dep));
-          const known = leg.arr && dayOf(leg.arr) === d;
-          const end = known ? clamp(minsOf(leg.arr!)) : DAY_END;
+          // Prefer a real arrival; fall back to a known journey length before
+          // giving up and blocking out the rest of the day.
+          const hasArr = !!leg.arr && dayOf(leg.arr) === d;
+          const known = hasArr || (i === 0 && !!b.durationMin);
+          const end = hasArr
+            ? clamp(minsOf(leg.arr!))
+            : i === 0 && b.durationMin
+              ? clamp(start + b.durationMin)
+              : DAY_END;
           if (!known) hasUnknown = true;
           blocks.push({
             key: `${b.id}-${i}`,
-            kind: known ? "travel" : "unknown",
+            kind:
+              b.status === "tobook" ? "hold" : known ? "travel" : "unknown",
             label: `${b.vendor ?? b.title}${leg.tag}`,
             start,
             end: Math.max(end, start + 30),
@@ -124,10 +132,10 @@ export function buildWeek(
 
       if (dayOf(b.eventAt) !== d) continue;
       const start = clamp(minsOf(b.eventAt));
-      const len = DEFAULT_LEN[b.category] ?? 90;
+      const len = b.durationMin ?? DEFAULT_LEN[b.category] ?? 90;
       blocks.push({
         key: b.id,
-        kind: "event",
+        kind: b.status === "tobook" ? "hold" : "event",
         label: b.title,
         start,
         end: clamp(start + len),

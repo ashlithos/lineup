@@ -24,7 +24,7 @@ export function PasteDialog({
     try {
       const cands = await extractFromText(text);
       if (cands.length === 0) {
-        setError("Didn't find a booking in that — try the manual form.");
+        setError("Didn't find a booking or a plan in that — try the manual form.");
       } else {
         setText("");
         onExtracted(cands);
@@ -46,7 +46,7 @@ export function PasteDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-ink">Paste a confirmation</h2>
+          <h2 className="text-2xl font-semibold text-ink">Paste a booking or plan</h2>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -56,8 +56,9 @@ export function PasteDialog({
           </button>
         </div>
         <p className="mb-3 text-[13px] text-ink-soft">
-          Paste the confirmation email — we&apos;ll pull out the dates, price and
-          cancellation deadline.
+          A confirmation email becomes a booking. A day plan — the kind an AI
+          chat hands you — becomes a &ldquo;to book&rdquo; list, with nothing
+          marked as reserved.
         </p>
         <textarea
           value={text}

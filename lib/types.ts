@@ -7,7 +7,17 @@ export type Category =
   | "train"
   | "other";
 
-export type BookingStatus = "upcoming" | "cancelled" | "done" | "plan";
+/**
+ * "tobook" is decided-and-scheduled but not reserved: a researched day inside a
+ * trip you've already booked. It has a real date and time; it has no
+ * confirmation, price or cancellation deadline until someone actually books it.
+ */
+export type BookingStatus =
+  | "upcoming"
+  | "tobook"
+  | "cancelled"
+  | "done"
+  | "plan";
 
 // A line on a trip plan's booked/not-booked checklist.
 export interface ChecklistItem {
@@ -42,7 +52,9 @@ export interface Booking {
    * and arriveAt are wall-clock times at two different places, so subtracting
    * them is only correct when both ends share a time zone.
    */
-  durationMin?: number; // ISO — hotel check-out; drives the nights count
+  durationMin?: number;
+  /** Who is going to book a "tobook" item. Free text — a name, or "me". */
+  assignee?: string; // ISO — hotel check-out; drives the nights count
   amount?: number;
   currency: string; // e.g. "GBP", "USD"
   refundable: boolean;

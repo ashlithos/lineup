@@ -13,6 +13,7 @@ import { touchesRange } from "@/lib/density";
 import { PlanCheckSheet } from "@/components/PlanCheckSheet";
 import { TripAgenda } from "@/components/TripAgenda";
 import { WeekGrid } from "@/components/WeekGrid";
+import { ToBookList } from "@/components/ToBookList";
 import { TripSidebar } from "@/components/TripSidebar";
 import { PlanCard } from "@/components/PlanCard";
 import { TripPlanCard } from "@/components/TripPlanCard";
@@ -84,8 +85,10 @@ export default function Home() {
     }
   }, []);
 
+  // "tobook" items live inside a booked trip, so they travel with it on the
+  // Upcoming rail rather than being filed away somewhere separate.
   const upcoming = useMemo(
-    () => bookings.filter((b) => b.status === "upcoming"),
+    () => bookings.filter((b) => b.status === "upcoming" || b.status === "tobook"),
     [bookings],
   );
 
@@ -280,6 +283,10 @@ export default function Home() {
     drafts.forEach((d) => add(d));
     setReviewOpen(false);
   };
+  // Ticking a "to book" item promotes it to a real booking. Everything it was
+  // missing (price, confirmation, deadline) stays empty until an email fills it.
+  const markBooked = (b: Booking) => update(b.id, { status: "upcoming" });
+
   const openEdit = (b: Booking) => {
     setEditing(b);
     setAddPrefill(null);
@@ -714,11 +721,18 @@ export default function Home() {
                           {freeTimeTrips.has(trip.key) ? (
                             <WeekGrid bookings={trip.bookings} onOpen={openEdit} />
                           ) : (
-                            <TripAgenda
-                              bookings={trip.bookings}
-                              onOpen={openEdit}
-                              onAddStay={handleAddStay}
-                            />
+                            <div className="space-y-3">
+                              <ToBookList
+                                bookings={trip.bookings}
+                                onOpen={openEdit}
+                                onBooked={markBooked}
+                              />
+                              <TripAgenda
+                                bookings={trip.bookings}
+                                onOpen={openEdit}
+                                onAddStay={handleAddStay}
+                              />
+                            </div>
                           )}
                         </div>
                         <div className="hidden lg:block">

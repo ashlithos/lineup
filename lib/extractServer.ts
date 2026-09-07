@@ -10,6 +10,7 @@ export interface RawCandidate {
   checkOut: string | null;
   arriveAt: string | null;
   durationMin: number | null;
+  needsBooking: boolean;
   amount: number | null;
   currency: string;
   refundable: boolean;
@@ -22,7 +23,7 @@ export interface RawCandidate {
 
 export function extractionSystem(today: string): string {
   return `You extract structured booking details from confirmation emails for an app called LineUp. Today is ${today}. Return ONLY valid JSON, no prose, matching:
-{"candidates":[{"title":string,"category":"hotel"|"event"|"restaurant"|"flight"|"train"|"other","vendor":string|null,"location":string|null,"eventAt":string(ISO 8601),"checkOut":string(ISO 8601)|null,"arriveAt":string(ISO 8601)|null,"durationMin":number|null,"amount":number|null,"currency":string,"refundable":boolean,"cancelBy":string(ISO)|null,"cancelUrl":string|null,"notes":string|null,"confidence":"high"|"check"|"partial","missing":string[]}]}
+{"candidates":[{"title":string,"category":"hotel"|"event"|"restaurant"|"flight"|"train"|"other","vendor":string|null,"location":string|null,"eventAt":string(ISO 8601),"checkOut":string(ISO 8601)|null,"arriveAt":string(ISO 8601)|null,"durationMin":number|null,"needsBooking":boolean,"amount":number|null,"currency":string,"refundable":boolean,"cancelBy":string(ISO)|null,"cancelUrl":string|null,"notes":string|null,"confidence":"high"|"check"|"partial","missing":string[]}]}
 Rules:
 - category "train" = rail travel (VIA Rail, Amtrak, Eurostar…), not "flight".
 - eventAt = when the experience happens (hotel check-in, flight/train departure, show time). Required; infer the year if needed using today's date.

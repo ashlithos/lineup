@@ -3,7 +3,8 @@ import type { Booking } from "./types";
 export type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
 export interface Candidate {
-  draft: Draft;
+  /** A pasted plan arrives as "tobook"; a confirmation as a real booking. */
+  draft: Draft & { status?: "upcoming" | "tobook" };
   confidence: "high" | "check" | "partial";
   sourceLabel: string; // which email it came from
   missing: string[]; // field names still worth a glance
@@ -142,12 +143,24 @@ export async function extractFromText(text: string): Promise<Candidate[]> {
     throw new Error(err.error || "Extraction failed");
   }
   const data = (await res.json()) as {
-    candidates?: Array<Candidate["draft"] & { confidence?: string; missing?: string[] }>;
+    candidates?: Array<
+      Candidate["draft"] & {
+        confidence?: string;
+        missing?: string[];
+        needsBooking?: boolean;
+      }
+    >;
   };
   return (data.candidates ?? []).map((c) => {
-    const { confidence, missing, ...draft } = c;
+    const { confidence, missing, needsBooking, ...draft } = c;
     return {
-      draft: { ...draft, source: "paste" } as Draft,
+      draft: {
+        ...draft,
+        source: "paste",
+        // A row from an itinerary that still has to be reserved is not a
+        // booking — it lands as "to book" until someone actually books it.
+        ...(needsBooking ? { status: "tobook" as const } : {}),
+      } as Candidate["draft"],
       confidence: (confidence as Candidate["confidence"]) ?? "check",
       missing: missing ?? [],
       sourceLabel: "Pasted confirmation",

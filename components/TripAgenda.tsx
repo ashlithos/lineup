@@ -5,9 +5,10 @@ import { buildTimeline, type Chapter } from "@/lib/chapters";
 import { collapseFlights, isFlightGroup, ticketLabel, type FlightGroup } from "@/lib/flights";
 import { countdown, formatMoney, getUrgency } from "@/lib/urgency";
 import { legTimes } from "@/lib/freetime";
+import { localDate } from "@/lib/localtime";
 
 const dow = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
+  localDate(iso).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -17,8 +18,8 @@ const dow = (iso: string) =>
 // "Sep 17 → 20 · 3 nights" for a stay whose span we know.
 function stayRange(checkIn: string, checkOut?: string, nights?: number): string {
   if (!checkOut) return "Length unknown";
-  const ci = new Date(checkIn);
-  const co = new Date(checkOut);
+  const ci = localDate(checkIn);
+  const co = localDate(checkOut);
   const mon = (d: Date) =>
     d.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
   const n = nights ?? 1;

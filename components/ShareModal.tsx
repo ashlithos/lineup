@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import type { Trip } from "@/lib/trips";
 import { isTransport } from "@/lib/types";
 import { tripDays } from "@/lib/agenda";
+import { localDate } from "@/lib/localtime";
 
 const fmt = (iso: string, o: Intl.DateTimeFormatOptions) =>
-  new Date(iso).toLocaleDateString("en-US", { timeZone: "UTC", ...o });
+  localDate(iso).toLocaleDateString("en-US", { timeZone: "UTC", ...o });
 
 export function ShareModal({
   trip,

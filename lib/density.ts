@@ -1,4 +1,5 @@
 import type { Booking } from "./types";
+import { localDayMs } from "./localtime";
 
 // "How packed am I?" — for each of the next N months, how many days have
 // something on, bucketed into fifths of the month. Buckets are day-of-month
@@ -24,10 +25,7 @@ export interface DensityMonth {
 }
 
 const DAY = 86_400_000;
-const utcMidnight = (iso: string) => {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
+const utcMidnight = localDayMs;
 
 // Every calendar day a booking occupies. Hotels cover check-in through the
 // night before check-out; a flight or show is just its own day.

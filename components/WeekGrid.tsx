@@ -10,6 +10,7 @@ import {
   hhmm,
   type Block,
 } from "@/lib/freetime";
+import { localDate } from "@/lib/localtime";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
@@ -23,9 +24,9 @@ const TONE: Record<Block["kind"], string> = {
 };
 
 const weekday = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" });
+  localDate(iso).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" });
 const dayNum = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  localDate(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 
 // Hour lines every 2 hours keeps the grid readable without a ruler effect.
 const HOURS = Array.from(

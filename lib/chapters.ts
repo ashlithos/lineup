@@ -1,5 +1,6 @@
 import { isTransport, type Booking } from "./types";
 import { collapseFlights, collapseStays, isFlightGroup, type FlightGroup } from "./flights";
+import { localDayMs } from "./localtime";
 
 // A trip reads as a sequence of cities with journeys between them — that's how
 // people actually describe a trip ("three nights in Toronto, then the train to
@@ -34,10 +35,7 @@ export interface Gap {
 export type TimelineItem = Chapter | Leg | Gap;
 
 const DAY = 86_400_000;
-const dayOf = (iso: string) => {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
+const dayOf = localDayMs;
 
 // The city a stay is in — first token of the location, title-cased for display.
 function cityOf(loc?: string): string {

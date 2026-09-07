@@ -36,7 +36,13 @@ export interface Booking {
   eventAt: string; // ISO — when the fun happens (hotel check-in)
   checkOut?: string;
   /** When a flight/train lands. Departure lives in eventAt. */
-  arriveAt?: string; // ISO — hotel check-out; drives the nights count
+  arriveAt?: string;
+  /**
+   * True elapsed minutes for a journey. Stored rather than derived: eventAt
+   * and arriveAt are wall-clock times at two different places, so subtracting
+   * them is only correct when both ends share a time zone.
+   */
+  durationMin?: number; // ISO — hotel check-out; drives the nights count
   amount?: number;
   currency: string; // e.g. "GBP", "USD"
   refundable: boolean;

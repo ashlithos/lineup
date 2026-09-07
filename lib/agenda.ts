@@ -1,4 +1,5 @@
 import { isTransport, type Booking } from "./types";
+import { localDayMs } from "./localtime";
 
 // Turns a trip's bookings into a day-by-day itinerary: what happens each day,
 // which hotel you're sleeping in that night, and — the useful part — the nights
@@ -29,10 +30,7 @@ const DAY = 86_400_000;
 // Use the UTC calendar date so day grouping is timezone-independent — dates are
 // stored as calendar days (often UTC midnight), which otherwise drift a day in
 // behind-UTC timezones.
-function midnight(iso: string): number {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
+const midnight = localDayMs;
 
 interface Span {
   start: number; // first night (check-in, local midnight)

@@ -1,4 +1,5 @@
 import type { Booking } from "./types";
+import { localDate, localDayMs } from "./localtime";
 
 // The attention model, in code.
 // Urgency is driven ONLY by refundable + cancelBy. Type never affects it.
@@ -48,8 +49,8 @@ export function countdown(iso: string, now: number = Date.now()): Countdown {
 }
 
 export function formatDeadline(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
+  return localDate(iso).toLocaleString(undefined, {
+    timeZone: "UTC",
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -61,16 +62,12 @@ export function formatDeadline(iso: string): string {
 // Whole nights between check-in and check-out, counted by calendar day so the
 // time-of-day on each stamp can't nudge it off by one.
 export function nightsBetween(checkIn: string, checkOut: string): number {
-  const a = new Date(checkIn);
-  const b = new Date(checkOut);
-  const dayA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-  const dayB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((dayB - dayA) / (HOUR * 24));
+  return Math.round((localDayMs(checkOut) - localDayMs(checkIn)) / (HOUR * 24));
 }
 
 export function formatEventDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
+  return localDate(iso).toLocaleDateString(undefined, {
+    timeZone: "UTC",
     weekday: "short",
     month: "short",
     day: "numeric",

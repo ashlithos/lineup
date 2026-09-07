@@ -4,6 +4,7 @@ import { CATEGORY_META, isTransport, type Booking } from "@/lib/types";
 import { tripDays } from "@/lib/agenda";
 import { collapseFlights, collapseStays, isFlightGroup } from "@/lib/flights";
 import { nightsBetween } from "@/lib/urgency";
+import { localDate } from "@/lib/localtime";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ async function getSharedTrip(
 }
 
 const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
-  new Date(iso).toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
+  localDate(iso).toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
 
 function rangeLabel(bookings: Booking[]): string {
   const stamps = bookings
@@ -71,8 +72,8 @@ function secondary(b: Booking): string | null {
   if (b.category === "hotel") {
     const n = b.checkOut ? nightsBetween(b.eventAt, b.checkOut) : 0;
     if (b.checkOut && n > 1) {
-      const ci = new Date(b.eventAt);
-      const co = new Date(b.checkOut);
+      const ci = localDate(b.eventAt);
+      const co = localDate(b.checkOut);
       const mon = (d: Date) => fmt(d.toISOString(), { month: "short" });
       const range =
         ci.getUTCMonth() === co.getUTCMonth()

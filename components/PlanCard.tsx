@@ -2,6 +2,7 @@
 
 import { CATEGORY_META, type Booking } from "@/lib/types";
 import { formatMoney } from "@/lib/urgency";
+import { localDate } from "@/lib/localtime";
 
 // A want-to-book item: lighter than a booking, with a "booked it" promote action.
 export function PlanCard({
@@ -17,7 +18,7 @@ export function PlanCard({
   const price = formatMoney(plan.amount, plan.currency);
   const roughTiming =
     plan.eventAt && !plan.eventAt.startsWith("9999")
-      ? new Date(plan.eventAt).toLocaleDateString("en-US", {
+      ? localDate(plan.eventAt).toLocaleDateString("en-US", {
           month: "short",
           year: "numeric",
           timeZone: "UTC",

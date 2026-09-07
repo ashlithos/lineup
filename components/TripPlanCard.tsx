@@ -1,6 +1,7 @@
 "use client";
 
 import { COMPANION_OPTIONS, type Booking } from "@/lib/types";
+import { localDate } from "@/lib/localtime";
 
 // A trip you want to take but haven't fully booked — the hero tier of the Plan
 // tab. Shows a booked/not-booked progress bar from its checklist.
@@ -13,7 +14,7 @@ export function TripPlanCard({
 }) {
   const roughTiming =
     plan.eventAt && !plan.eventAt.startsWith("9999")
-      ? new Date(plan.eventAt).toLocaleDateString("en-US", {
+      ? localDate(plan.eventAt).toLocaleDateString("en-US", {
           month: "short",
           year: "numeric",
           timeZone: "UTC",

@@ -9,6 +9,7 @@ export interface RawCandidate {
   eventAt: string;
   checkOut: string | null;
   arriveAt: string | null;
+  durationMin: number | null;
   amount: number | null;
   currency: string;
   refundable: boolean;
@@ -21,7 +22,7 @@ export interface RawCandidate {
 
 export function extractionSystem(today: string): string {
   return `You extract structured booking details from confirmation emails for an app called LineUp. Today is ${today}. Return ONLY valid JSON, no prose, matching:
-{"candidates":[{"title":string,"category":"hotel"|"event"|"restaurant"|"flight"|"train"|"other","vendor":string|null,"location":string|null,"eventAt":string(ISO 8601),"checkOut":string(ISO 8601)|null,"arriveAt":string(ISO 8601)|null,"amount":number|null,"currency":string,"refundable":boolean,"cancelBy":string(ISO)|null,"cancelUrl":string|null,"notes":string|null,"confidence":"high"|"check"|"partial","missing":string[]}]}
+{"candidates":[{"title":string,"category":"hotel"|"event"|"restaurant"|"flight"|"train"|"other","vendor":string|null,"location":string|null,"eventAt":string(ISO 8601),"checkOut":string(ISO 8601)|null,"arriveAt":string(ISO 8601)|null,"durationMin":number|null,"amount":number|null,"currency":string,"refundable":boolean,"cancelBy":string(ISO)|null,"cancelUrl":string|null,"notes":string|null,"confidence":"high"|"check"|"partial","missing":string[]}]}
 Rules:
 - category "train" = rail travel (VIA Rail, Amtrak, Eurostar…), not "flight".
 - eventAt = when the experience happens (hotel check-in, flight/train departure, show time). Required; infer the year if needed using today's date.
@@ -30,6 +31,7 @@ Rules:
   * If only a night count is given ("3 nights"), compute check-out = check-in + that many nights.
   * Only if none of the above appears, set null AND add "checkOut" to the "missing" array so the app can flag it.
 - For a ROUND-TRIP flight or train, put the return departure in checkOut. One-way: null.
+- durationMin = the journey length in MINUTES, for flights and trains. Itineraries often print it ("Est. Travel Time: 1h 30m", "Duration 6h 13m") — convert to minutes and use it. If it is not printed, compute it ONLY when departure and arrival are in the same time zone; otherwise set null. Never guess a flight time.
 - arriveAt = when a flight or train LANDS/arrives, as an ISO datetime, for category "flight" and "train" only. Itineraries nearly always print it ("9:45 AM SJC → 11:15 AM LAS", "ARRIVES LAS 11:15 AM", "Arrival: 11:26"). Capture it in the arrival airport/station's local time. Set null for every other category and whenever the arrival genuinely is not stated — NEVER estimate a flight time.
 - refundable = true only if the text states free cancellation is possible. If it says non-refundable, set false.
 - cancelBy = the free-cancellation deadline as an ISO datetime, ONLY if the text states it. If not stated, set null and add "cancelBy" to missing. NEVER invent a deadline.

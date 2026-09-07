@@ -1,4 +1,5 @@
 import { isTransport, type Booking } from "./types";
+import { durationMin, localDayMs, localMins } from "./localtime";
 
 // Turns a trip into a day-by-day picture of committed vs open time, so you can
 // see at a glance where an activity would actually fit.
@@ -34,14 +35,8 @@ export interface DayPlan {
 }
 
 const DAY = 86_400_000;
-const dayOf = (iso: string) => {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
-const minsOf = (iso: string) => {
-  const d = new Date(iso);
-  return d.getUTCHours() * 60 + d.getUTCMinutes();
-};
+const dayOf = localDayMs;
+const minsOf = localMins;
 
 export const hhmm = (m: number) => {
   const h = Math.floor(m / 60);
@@ -169,16 +164,26 @@ export function buildWeek(
   return days;
 }
 
+// Same-city journeys (a train between two stops in one zone) can be subtracted
+// safely; anything that changes city is assumed to risk a zone change.
+function sameClock(b: Booking): boolean {
+  const loc = b.location ?? "";
+  const [from, to] = loc.split(/[→⇄]/).map((x) => x.trim().toLowerCase());
+  return !!from && !!to && from === to;
+}
+
 // "6:35pm — 6h 13m — 9:48pm" for a transport card, when we know the landing.
 export function legTimes(b: Booking): { dep: string; arr?: string; length?: string } {
   const dep = hhmm(minsOf(b.eventAt));
   if (!b.arriveAt) return { dep };
-  const mins = Math.round(
-    (new Date(b.arriveAt).getTime() - new Date(b.eventAt).getTime()) / 60000,
-  );
+  // Only ever show a duration we actually know. eventAt and arriveAt are
+  // wall-clock times at two different places, so the difference between them
+  // is meaningless across time zones — a stored value or nothing.
+  const mins =
+    b.durationMin ?? (sameClock(b) ? durationMin(b.eventAt, b.arriveAt) : null);
   return {
     dep,
     arr: hhmm(minsOf(b.arriveAt)),
-    length: mins > 0 ? dur(mins) : undefined,
+    length: mins ? dur(mins) : undefined,
   };
 }

@@ -1,4 +1,5 @@
 import { isTransport, type Booking } from "./types";
+import { localDate, localDayMs } from "./localtime";
 
 // Deterministic checks over the itinerary. These are the ones that must never
 // be wrong — deadlines, overlaps, missing data — so they're plain code, not a
@@ -18,12 +19,9 @@ export interface Finding {
 export const SEVERITY_ORDER: Severity[] = ["conflict", "check", "tidy"];
 
 const DAY = 86_400_000;
-const dayOf = (iso: string) => {
-  const d = new Date(iso);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
+const dayOf = localDayMs;
 const fmt = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", {
+  localDate(iso).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",

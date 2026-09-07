@@ -260,7 +260,7 @@ export function WeekGrid({
         {days.some((d) => sunTimes(d.place, d.date)) && (
           <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
             <span
-              className="size-3 rounded-[3px] border-t border-dashed border-soon/70 bg-ink/[0.045]"
+              className="size-3 rounded-[3px] border border-line border-t-dashed border-t-soon/70 bg-ink/[0.045]"
               aria-hidden="true"
             />
             before sunrise / after sunset

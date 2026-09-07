@@ -17,10 +17,14 @@ export function ShareModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  // Two ways to share the same trip: the reservations, or the shape of the days.
+  const [view, setView] = useState<"itinerary" | "timetable">("itinerary");
   const bookings = trip.bookings;
   const link =
     typeof window !== "undefined"
-      ? `${window.location.origin}/share/${bookings[0]?.id}`
+      ? `${window.location.origin}/share/${bookings[0]?.id}${
+          view === "timetable" ? "?view=timetable" : ""
+        }`
       : "";
 
   const flights = bookings.filter((b) => isTransport(b.category)).length;
@@ -86,6 +90,45 @@ export function ShareModal({
           </button>
         </div>
 
+        <fieldset className="mb-4">
+          <legend className="mb-2 text-[13px] text-ink-soft">
+            What should they see?
+          </legend>
+          <div className="space-y-1.5">
+            {(
+              [
+                ["itinerary", "The itinerary", "Where you're staying, flights and dates."],
+                ["timetable", "The timetable", "Hour by hour, with open time each day."],
+              ] as const
+            ).map(([id, title, desc]) => (
+              <label
+                key={id}
+                className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition-colors ${
+                  view === id
+                    ? "border-accent bg-accent-soft"
+                    : "border-line hover:border-line-strong"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="share-view"
+                  checked={view === id}
+                  onChange={() => setView(id)}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--color-accent)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-[13.5px] font-medium text-ink">
+                    {title}
+                  </span>
+                  <span className="mt-0.5 block text-[12px] leading-snug text-ink-soft">
+                    {desc}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <div className="mb-4 rounded-xl bg-paper p-4">
           <div className="font-serif text-lg leading-tight text-ink">
             {trip.label}
@@ -93,16 +136,28 @@ export function ShareModal({
           {range && (
             <div className="mb-2.5 text-[12px] text-ink-faint">{range}</div>
           )}
-          {bookedBits.length > 0 && (
-            <div className="flex items-center gap-2 text-[13px] text-ink">
-              <i
-                className="ti ti-circle-check text-[16px] text-ok"
-                aria-hidden="true"
-              />
-              {bookedBits.join(", ")} booked
+          {view === "timetable" ? (
+            <div className="flex items-start gap-2 text-[13px] text-ink">
+              <i className="ti ti-calendar-time text-[16px] text-accent" aria-hidden="true" />
+              <span>
+                Your open hours each day.
+                <span className="mt-0.5 block text-[12px] text-ink-soft">
+                  No hotel names, prices or confirmations.
+                </span>
+              </span>
             </div>
+          ) : (
+            bookedBits.length > 0 && (
+              <div className="flex items-center gap-2 text-[13px] text-ink">
+                <i
+                  className="ti ti-circle-check text-[16px] text-ok"
+                  aria-hidden="true"
+                />
+                {bookedBits.join(", ")} booked
+              </div>
+            )
           )}
-          {gaps > 0 && (
+          {view === "itinerary" && gaps > 0 && (
             <div className="mt-1.5 flex items-center gap-2 text-[13px] text-ink-soft">
               <i
                 className="ti ti-circle text-[16px] text-ink-faint"

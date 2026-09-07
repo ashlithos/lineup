@@ -5,6 +5,7 @@ import { tripDays } from "@/lib/agenda";
 import { collapseFlights, collapseStays, isFlightGroup } from "@/lib/flights";
 import { nightsBetween } from "@/lib/urgency";
 import { localDate } from "@/lib/localtime";
+import { ShareTimetable } from "@/components/ShareTimetable";
 
 export const dynamic = "force-dynamic";
 
@@ -107,10 +108,14 @@ function totalNights(bookings: Booking[]): number {
 
 export default async function SharePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
+  const { view } = await searchParams;
+  const timetable = view === "timetable";
   const trip = await getSharedTrip(id);
 
   if (!trip) {
@@ -144,7 +149,7 @@ export default async function SharePage({
 
   return (
     <main className="min-h-screen bg-paper px-5 py-12">
-      <div className="mx-auto max-w-md">
+      <div className={`mx-auto ${timetable ? "max-w-5xl" : "max-w-md"}`}>
         <div className="mb-5 flex items-center justify-center gap-2.5">
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-accent text-[12px] font-medium text-white">
             {SHARER_NAME.charAt(0)}
@@ -166,7 +171,7 @@ export default async function SharePage({
                 </h1>
                 <p className="mt-0.5 text-[13px] text-white/90">
                   {rangeText}
-                  {nights > 0 && ` · ${nights} nights`}
+                  {timetable ? " · when I'm free" : nights > 0 ? ` · ${nights} nights` : ""}
                 </p>
               </div>
             </div>
@@ -189,6 +194,14 @@ export default async function SharePage({
           )}
 
           <div className="p-6 pt-5">
+          {timetable ? (
+            <section>
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-accent">
+                Open time each day
+              </h2>
+              <ShareTimetable bookings={bookings} />
+            </section>
+          ) : (
           <section>
             <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-ok">
               Booked
@@ -227,8 +240,9 @@ export default async function SharePage({
               })}
             </ul>
           </section>
+          )}
 
-          {gaps.length > 0 && (
+          {!timetable && gaps.length > 0 && (
             <section className="mt-5 border-t border-line pt-5">
               <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
                 Still to sort

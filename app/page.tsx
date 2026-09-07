@@ -682,7 +682,7 @@ export default function Home() {
                             {(
                               [
                                 ["itinerary", "Itinerary"],
-                                ["free", "Free time"],
+                                ["free", "Timetable"],
                               ] as const
                             ).map(([id, label]) => {
                               const active =

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LineUp · naming + share options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f4f6f8;--raised:#fff;--ink:#21242c;--soft:#5c636f;--faint:#69717f;
+    --line:#e4e7ec;--strong:#d3d7df;--accent:#6e5ec8;--accent-soft:#f1effe;
+    --ok:#087d4a;--ok-soft:#e4f7ec;--soon:#9b6109;--soon-soft:#faf0dc;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Figtree",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:32px 18px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 7px}
+  .lede{color:var(--soft);font-size:15px;margin:0 0 30px;max-width:72ch;line-height:1.55}
+  section{margin:0 0 40px;padding-bottom:34px;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 5px}
+  .sec-n{font-family:"DM Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+  h2{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .sec-sub{color:var(--soft);font-size:14px;margin:6px 0 20px;line-height:1.55;max-width:76ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+  .opt{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:15px 14px 17px}
+  .opt-h{display:flex;align-items:center;gap:7px;margin:0 0 4px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+  .tag.a{background:var(--accent-soft);color:var(--accent)}
+  .tag.rec{background:var(--ok-soft);color:var(--ok)}
+  .nm{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:2px 0 6px}
+  .opt-desc{font-size:12.5px;color:var(--soft);line-height:1.5;margin:0 0 12px}
+  .against{font-size:11.5px;color:var(--faint);line-height:1.45;border-top:1px solid var(--line);padding-top:9px;margin-top:4px}
+  .against b{color:var(--soft)}
+  .tabs{display:inline-flex;border:1px solid var(--line);background:var(--raised);border-radius:99px;padding:2px;margin-top:4px}
+  .tabs span{padding:5px 13px;font-size:12.5px;font-weight:500;color:var(--soft);border-radius:99px}
+  .tabs span.on{background:var(--ink);color:#fff}
+  .stage{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:13px 12px}
+
+  /* dialog */
+  .dlg{max-width:340px;margin:0 auto;background:var(--raised);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .dlg-h{padding:14px 16px 4px;font-size:15px;font-weight:600}
+  .dlg-s{padding:0 16px 12px;font-size:12.5px;color:var(--faint);line-height:1.45}
+  .pick{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-top:1px solid var(--line);cursor:pointer}
+  .pick.sel{background:var(--accent-soft)}
+  .radio{width:15px;height:15px;flex:0 0 15px;border-radius:99px;border:2px solid var(--strong);margin-top:2px}
+  .pick.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 0 4px,transparent 5px)}
+  .pick .t{font-size:13px;font-weight:600}
+  .pick .d{font-size:11.5px;color:var(--faint);margin-top:2px;line-height:1.4}
+  .dlg-f{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)}
+  .btn{flex:1;text-align:center;border-radius:99px;padding:8px;font-size:12.5px;font-weight:500}
+  .btn.p{background:var(--ink);color:#fff}.btn.s{border:1px solid var(--line);color:var(--soft)}
+
+  /* share cards */
+  .card{max-width:330px;margin:0 auto;background:var(--raised);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .hero{height:96px;background:linear-gradient(135deg,#c98a4b,#7a5a86 70%,#3f4a6b);position:relative;display:flex;align-items:flex-end}
+  .hero .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),transparent 62%)}
+  .hero .cap{position:relative;padding:10px 14px;color:#fff}
+  .hero .t{font-size:18px;font-weight:700;line-height:1.05}.hero .d{font-size:11px;opacity:.92;margin-top:1px}
+  .body{padding:12px 14px 8px}
+  .lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 9px}
+  .lbl.ok{color:var(--ok)}.lbl.ac{color:var(--accent)}
+  .row{display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--line);align-items:flex-start}
+  .row:first-of-type{border-top:none}
+  .row .e{width:22px;flex:0 0 22px;text-align:center;font-size:14px}
+  .row .m{flex:1;min-width:0}
+  .row .st{font-size:12.5px;font-weight:500;line-height:1.25}
+  .row .ss{font-size:10.5px;color:var(--faint);margin-top:1px}
+  .foot{text-align:center;padding:10px;color:var(--faint);font-size:11px;border-top:1px solid var(--line)}
+
+  /* mini week grid for the share card */
+  .wk{display:grid;grid-template-columns:22px repeat(7,1fr);gap:2px;margin-top:4px}
+  .wh{font-size:8.5px;font-weight:600;text-align:center;color:var(--soft)}
+  .gut{font-size:7px;color:var(--faint);text-align:right;padding-right:2px;font-family:"DM Mono",monospace}
+  .col{position:relative;height:104px;background:var(--ok-soft);border-radius:3px;overflow:hidden}
+  .nite{position:absolute;inset-inline:0;background:rgba(33,36,44,.08)}
+  .blk{position:absolute;inset-inline:0;border-radius:2px;font-size:6.5px;color:#fff;
+    display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .blk.tr{background:var(--accent)}.blk.ev{background:var(--soon)}
+  .freelab{position:absolute;inset-inline:0;text-align:center;font-size:7.5px;font-weight:700;color:var(--ok)}
+  .tot{font-size:8.5px;text-align:center;font-family:"DM Mono",monospace;color:var(--ink);padding-top:3px;font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:9px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line)}
+  .lg{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--soft)}
+  .sw{width:11px;height:8px;border-radius:2px}
+
+  .why{margin-top:20px;background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:13px 15px;font-size:13px;color:var(--soft);line-height:1.6}
+  .why b{color:var(--ink)}
+  .why.warn{border-left-color:var(--soon)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Naming the tab, and what your friends see</h1>
+  <p class="lede">Two decisions. First what to call the view — "Free time" describes the green space, not the thing itself. Then what a shared link should show, now that there are two ways to look at a trip.</p>
+
+  <!-- ============ NAMING ============ -->
+  <section>
+    <div class="sec-h"><span class="sec-n">01</span><h2>What to call the tab</h2></div>
+    <p class="sec-sub">It sits next to "Itinerary", so the pair has to read as two lenses on one trip. Your suggestion is in there as B.</p>
+    <div class="grid">
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">A</span><span class="tag rec">my pick</span></div>
+        <div class="nm">Daily</div>
+        <div class="opt-desc">Reads as "the day-by-day". Short, sits cleanly beside Itinerary, and doesn't over-claim — the view is about hours in a day, not scheduling.</div>
+        <div class="tabs"><span>Itinerary</span><span class="on">Daily</span></div>
+        <div class="against"><b>Against:</b> slightly vague on its own — you learn what it means by clicking once.</div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">B</span></div>
+        <div class="nm">Timetable</div>
+        <div class="opt-desc">Your suggestion. Concrete and instantly understood — everyone knows what a timetable is, and it matches the grid's shape exactly.</div>
+        <div class="tabs"><span>Itinerary</span><span class="on">Timetable</span></div>
+        <div class="against"><b>Against:</b> carries a whiff of trains and school; it implies a fixed schedule when the point is the <i>gaps</i>. Also the longest of the three.</div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">C</span></div>
+        <div class="nm">Hours</div>
+        <div class="opt-desc">The most literal: this is the view where a trip is measured in hours rather than days. Shortest, and pairs oddly well with Itinerary's day-level framing.</div>
+        <div class="tabs"><span>Itinerary</span><span class="on">Hours</span></div>
+        <div class="against"><b>Against:</b> a bit bare, and "hours" can read as opening hours.</div>
+      </div>
+    </div>
+    <div class="why"><b>Why A:</b> "Daily" names the <i>unit</i> the view works in, which stays true whether a day is packed or empty — where "Free time" only describes the good case, and reads a little odd on a day that's completely booked. <b>Timetable</b> is the safest for a stranger to understand, so if this view ever gets shared widely, B is the stronger choice.</div>
+  </section>
+
+  <!-- ============ SHARE PICKER ============ -->
+  <section>
+    <div class="sec-h"><span class="sec-n">02</span><h2>Choosing what to share</h2></div>
+    <p class="sec-sub">A step added to the share flow — asked once, before the link is created. The choice is stored in the link, so the same trip can be shared two different ways to two different people.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">The picker</span></div>
+        <div class="opt-desc">Appears when you tap Share. Defaults to the itinerary, since that's what most people want to send.</div>
+        <div class="stage">
+          <div class="dlg">
+            <div class="dlg-h">Share Canada Sep</div>
+            <div class="dlg-s">What should they see?</div>
+            <label class="pick sel"><span class="radio"></span><span><span class="t">The itinerary</span><span class="d">Where you're staying, flights and dates. Best for "here's my trip".</span></span></label>
+            <label class="pick"><span class="radio"></span><span><span class="t">The daily view</span><span class="d">Hour-by-hour, with open time each day. Best for "when are you free?"</span></span></label>
+            <div class="dlg-f"><span class="btn s">Cancel</span><span class="btn p">Create link</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Card 1</span></div>
+        <div class="opt-desc">The itinerary card — unchanged from what you approved.</div>
+        <div class="stage">
+          <div class="card">
+            <div class="hero"><div class="ov"></div><div class="cap"><div class="t">Canada Sep</div><div class="d">Sep 17 – 23, 2026 · 6 nights</div></div></div>
+            <div class="body">
+              <p class="lbl ok">Booked · 4 reservations</p>
+              <div class="row"><span class="e">✈️</span><div class="m"><div class="st">United · SFO → Toronto</div><div class="ss">8:10am → 4:14pm · 5h 4m</div></div></div>
+              <div class="row"><span class="e">🛏️</span><div class="m"><div class="st">Hyatt Regency Toronto</div><div class="ss">Sep 17 → 20 · 3 nights</div></div></div>
+              <div class="row"><span class="e">🚆</span><div class="m"><div class="st">VIA Rail · Quebec → Montreal</div><div class="ss">8:06am → 11:26am · 3h 20m</div></div></div>
+            </div>
+            <div class="foot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Card 2</span><span class="tag rec">new</span></div>
+        <div class="opt-desc">The daily card. Same hero, but the body is the grid — so a friend can see exactly which afternoons are open.</div>
+        <div class="stage">
+          <div class="card">
+            <div class="hero"><div class="ov"></div><div class="cap"><div class="t">Canada Sep</div><div class="d">Sep 17 – 23 · when I'm free</div></div></div>
+            <div class="body">
+              <p class="lbl ac">Open time each day</p>
+              <div class="wk">
+                <div></div><div class="wh">T</div><div class="wh">F</div><div class="wh">S</div><div class="wh">S</div><div class="wh">M</div><div class="wh">T</div><div class="wh">W</div>
+                <div style="position:relative;height:104px">
+                  <span class="gut" style="position:absolute;top:0">7a</span>
+                  <span class="gut" style="position:absolute;top:44%">2p</span>
+                  <span class="gut" style="position:absolute;bottom:0">11p</span>
+                </div>
+                <!-- Thu: flight 8:10a-4:14p -->
+                <div class="col"><span class="nite" style="top:0;height:0%"></span><span class="nite" style="top:78%;bottom:0"></span>
+                  <span class="blk tr" style="top:7%;height:38%">✈</span><span class="freelab" style="top:50%">6h</span></div>
+                <div class="col"><span class="nite" style="top:78%;bottom:0"></span><span class="freelab" style="top:40%">13h</span></div>
+                <div class="col"><span class="nite" style="top:78%;bottom:0"></span><span class="freelab" style="top:40%">13h</span></div>
+                <!-- Sun: porter -->
+                <div class="col"><span class="nite" style="top:74%;bottom:0"></span><span class="blk tr" style="top:37%;height:9%">✈</span><span class="freelab" style="top:15%">13h</span></div>
+                <div class="col"><span class="nite" style="top:74%;bottom:0"></span><span class="freelab" style="top:40%">13h</span></div>
+                <!-- Tue: train 8:06-11:26 -->
+                <div class="col"><span class="nite" style="top:74%;bottom:0"></span><span class="blk tr" style="top:6%;height:21%">🚆</span><span class="freelab" style="top:45%">9h</span></div>
+                <!-- Wed: flight home 6:35p -->
+                <div class="col"><span class="nite" style="top:74%;bottom:0"></span><span class="blk tr" style="top:72%;height:20%">✈</span><span class="freelab" style="top:30%">11h</span></div>
+                <div class="tot">free</div>
+                <div class="tot">6h</div><div class="tot">13h</div><div class="tot">13h</div><div class="tot">13h</div><div class="tot">13h</div><div class="tot">9h</div><div class="tot">11h</div>
+              </div>
+              <div class="legend">
+                <span class="lg"><span class="sw" style="background:var(--ok-soft)"></span>free</span>
+                <span class="lg"><span class="sw" style="background:var(--accent)"></span>travelling</span>
+                <span class="lg"><span class="sw" style="background:rgba(33,36,44,.08)"></span>after dark</span>
+              </div>
+            </div>
+            <div class="foot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="why warn"><b>One privacy call I'd like you to make.</b> The daily card is more revealing than the itinerary one — it shows where you are hour by hour, every night you're out, and (through the daylight shading) which city you're in each day. That's fine for close friends and family, which is who you said this is for.<br><br>
+    So the proposal deliberately <b>drops three things</b> from the daily card that the itinerary card shows: <b>hotel names</b>, <b>prices</b>, and <b>confirmation details</b>. A friend sees "you're free Friday afternoon", not "you're at the Hyatt on points". Say the word if you'd rather it showed everything.</div>
+  </section>
+</div>
+</body>
+</html>

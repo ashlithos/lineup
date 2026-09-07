@@ -7,6 +7,7 @@
 // and the grid simply draws no lines — a wrong horizon is worse than none.
 
 interface Place {
+  name: string;
   lat: number;
   lon: number;
   tz: string;
@@ -15,30 +16,35 @@ interface Place {
 // City-centre coordinates. Precision beyond a decimal or two is pointless here:
 // moving across a city shifts sunrise by seconds.
 const PLACES: [RegExp, Place][] = [
-  [/toronto|yyz|ytz/i, { lat: 43.65, lon: -79.38, tz: "America/Toronto" }],
-  [/montr[ée]al|yul|mtrl/i, { lat: 45.5, lon: -73.57, tz: "America/Toronto" }],
-  [/qu[ée]bec|yqb|qbec/i, { lat: 46.81, lon: -71.21, tz: "America/Toronto" }],
-  [/vancouver|yvr/i, { lat: 49.28, lon: -123.12, tz: "America/Vancouver" }],
-  [/las vegas|\blas\b/i, { lat: 36.17, lon: -115.14, tz: "America/Los_Angeles" }],
-  [/springdale|zion/i, { lat: 37.19, lon: -112.99, tz: "America/Denver" }],
-  [/san francisco|\bsfo\b/i, { lat: 37.77, lon: -122.42, tz: "America/Los_Angeles" }],
-  [/san jose|\bsjc\b/i, { lat: 37.34, lon: -121.89, tz: "America/Los_Angeles" }],
-  [/roseville|sacramento/i, { lat: 38.75, lon: -121.29, tz: "America/Los_Angeles" }],
-  [/kings beach|tahoe/i, { lat: 39.24, lon: -120.03, tz: "America/Los_Angeles" }],
-  [/los angeles|\blax\b/i, { lat: 34.05, lon: -118.24, tz: "America/Los_Angeles" }],
-  [/new york|\bjfk\b|\blga\b/i, { lat: 40.71, lon: -74.01, tz: "America/New_York" }],
-  [/seattle|\bsea\b/i, { lat: 47.61, lon: -122.33, tz: "America/Los_Angeles" }],
-  [/chicago|\bord\b/i, { lat: 41.88, lon: -87.63, tz: "America/Chicago" }],
-  [/london|\blhr\b/i, { lat: 51.51, lon: -0.13, tz: "Europe/London" }],
-  [/paris|\bcdg\b/i, { lat: 48.86, lon: 2.35, tz: "Europe/Paris" }],
-  [/amsterdam|\bams\b/i, { lat: 52.37, lon: 4.9, tz: "Europe/Amsterdam" }],
-  [/tokyo|\bhnd\b|\bnrt\b/i, { lat: 35.68, lon: 139.65, tz: "Asia/Tokyo" }],
-  [/kyoto/i, { lat: 35.01, lon: 135.77, tz: "Asia/Tokyo" }],
-  [/taipei|\btpe\b/i, { lat: 25.03, lon: 121.57, tz: "Asia/Taipei" }],
-  [/hong kong|\bhkg\b/i, { lat: 22.32, lon: 114.17, tz: "Asia/Hong_Kong" }],
-  [/shenzhen/i, { lat: 22.54, lon: 114.06, tz: "Asia/Shanghai" }],
-  [/sydney|\bsyd\b/i, { lat: -33.87, lon: 151.21, tz: "Australia/Sydney" }],
+  [/toronto|yyz|ytz/i, { name: "Toronto", lat: 43.65, lon: -79.38, tz: "America/Toronto" }],
+  [/montr[ée]al|yul|mtrl/i, { name: "Montreal", lat: 45.5, lon: -73.57, tz: "America/Toronto" }],
+  [/qu[ée]bec|yqb|qbec/i, { name: "Quebec City", lat: 46.81, lon: -71.21, tz: "America/Toronto" }],
+  [/vancouver|yvr/i, { name: "Vancouver", lat: 49.28, lon: -123.12, tz: "America/Vancouver" }],
+  [/las vegas|\blas\b/i, { name: "Las Vegas", lat: 36.17, lon: -115.14, tz: "America/Los_Angeles" }],
+  [/springdale|zion/i, { name: "Zion", lat: 37.19, lon: -112.99, tz: "America/Denver" }],
+  [/san francisco|\bsfo\b/i, { name: "San Francisco", lat: 37.77, lon: -122.42, tz: "America/Los_Angeles" }],
+  [/san jose|\bsjc\b/i, { name: "San Jose", lat: 37.34, lon: -121.89, tz: "America/Los_Angeles" }],
+  [/roseville|sacramento/i, { name: "Sacramento", lat: 38.75, lon: -121.29, tz: "America/Los_Angeles" }],
+  [/kings beach|tahoe/i, { name: "Tahoe", lat: 39.24, lon: -120.03, tz: "America/Los_Angeles" }],
+  [/los angeles|\blax\b/i, { name: "Los Angeles", lat: 34.05, lon: -118.24, tz: "America/Los_Angeles" }],
+  [/new york|\bjfk\b|\blga\b/i, { name: "New York", lat: 40.71, lon: -74.01, tz: "America/New_York" }],
+  [/seattle|\bsea\b/i, { name: "Seattle", lat: 47.61, lon: -122.33, tz: "America/Los_Angeles" }],
+  [/chicago|\bord\b/i, { name: "Chicago", lat: 41.88, lon: -87.63, tz: "America/Chicago" }],
+  [/london|\blhr\b/i, { name: "London", lat: 51.51, lon: -0.13, tz: "Europe/London" }],
+  [/paris|\bcdg\b/i, { name: "Paris", lat: 48.86, lon: 2.35, tz: "Europe/Paris" }],
+  [/amsterdam|\bams\b/i, { name: "Amsterdam", lat: 52.37, lon: 4.9, tz: "Europe/Amsterdam" }],
+  [/tokyo|\bhnd\b|\bnrt\b/i, { name: "Tokyo", lat: 35.68, lon: 139.65, tz: "Asia/Tokyo" }],
+  [/kyoto/i, { name: "Kyoto", lat: 35.01, lon: 135.77, tz: "Asia/Tokyo" }],
+  [/taipei|\btpe\b/i, { name: "Taipei", lat: 25.03, lon: 121.57, tz: "Asia/Taipei" }],
+  [/hong kong|\bhkg\b/i, { name: "Hong Kong", lat: 22.32, lon: 114.17, tz: "Asia/Hong_Kong" }],
+  [/shenzhen/i, { name: "Shenzhen", lat: 22.54, lon: 114.06, tz: "Asia/Shanghai" }],
+  [/sydney|\bsyd\b/i, { name: "Sydney", lat: -33.87, lon: 151.21, tz: "Australia/Sydney" }],
 ];
+
+/** A friendly city name for a booking location, or null if we don't know it. */
+export function cityLabel(location?: string): string | null {
+  return placeFor(location)?.name ?? null;
+}
 
 export function placeFor(location?: string): Place | null {
   if (!location) return null;

@@ -6,22 +6,22 @@ import {
   buildWeek,
   DAY_START,
   DAY_END,
+  PLAN_END,
   dur,
   hhmm,
   type Block,
 } from "@/lib/freetime";
 import { localDate } from "@/lib/localtime";
-import { sunTimes } from "@/lib/sun";
+import { cityLabel, sunTimes } from "@/lib/sun";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
 
 const TONE: Record<Block["kind"], string> = {
-  travel: "bg-accent text-white",
-  event: "bg-soon text-white",
-  meal: "bg-line text-ink-soft",
-  unknown:
-    "bg-soon-soft text-soon border border-dashed border-soon/60",
+  travel: "bg-line-strong text-ink",
+  event: "bg-accent text-white",
+  meal: "bg-ok-soft text-ok border border-ok/25",
+  unknown: "bg-soon-soft text-soon border border-dashed border-soon/60",
 };
 
 const weekday = (iso: string) =>
@@ -52,7 +52,7 @@ export function WeekGrid({
     <section className="rounded-xl border border-line bg-raised p-3 md:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-[13px] text-ink-soft">
-          Open time each day, 7am–11pm
+          Open time each day, counted to {hhmm(PLAN_END)}
         </p>
         <label className="flex cursor-pointer items-center gap-2 text-[12px] text-ink-soft">
           <input
@@ -73,14 +73,31 @@ export function WeekGrid({
         >
           {/* header row */}
           <div />
-          {days.map((d) => (
-            <div key={`h-${d.key}`} className="pb-1 text-center">
-              <div className="text-[12px] font-semibold text-ink">
-                {weekday(d.date)}
+          {days.map((d) => {
+            const from = cityLabel(d.place);
+            const to = cityLabel(d.endPlace);
+            const where = from && to && from !== to ? `${from} → ${to}` : (to ?? from);
+            return (
+              <div key={`h-${d.key}`} className="pb-1 text-center">
+                <div className="text-[12px] font-semibold text-ink">
+                  {weekday(d.date)}
+                </div>
+                <div className="text-[10.5px] text-ink-faint">{dayNum(d.date)}</div>
+                {where && (
+                  <div
+                    title={where}
+                    className={`mt-0.5 truncate text-[10px] ${
+                      from && to && from !== to
+                        ? "font-medium text-accent"
+                        : "text-ink-soft"
+                    }`}
+                  >
+                    {where}
+                  </div>
+                )}
               </div>
-              <div className="text-[10.5px] text-ink-faint">{dayNum(d.date)}</div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* hour gutter */}
           <div className="relative h-[320px]">
@@ -99,28 +116,32 @@ export function WeekGrid({
           {days.map((d) => (
             <div
               key={d.key}
-              className="relative h-[320px] overflow-hidden rounded-lg bg-ok-soft/60"
+              className="relative h-[320px] overflow-hidden rounded-lg border border-line bg-raised"
             >
               {/* Daylight: the hours before sunrise and after sunset are shaded,
                   so the usable part of the day reads at a glance. Computed for
                   the city you're actually in that day. */}
               {(() => {
-                const sun = sunTimes(d.place, d.date);
-                if (!sun) return null;
+                // On a travel day the two ends are different cities, so take
+                // sunrise where you woke and sunset where you'll sleep.
+                const am = sunTimes(d.place, d.date);
+                const pm = sunTimes(d.endPlace ?? d.place, d.date);
+                if (!am && !pm) return null;
+                const sun = { sunrise: am?.sunrise ?? pm!.sunrise, sunset: pm?.sunset ?? am!.sunset };
                 const rise = Math.max(DAY_START, Math.min(DAY_END, sun.sunrise));
                 const set = Math.max(DAY_START, Math.min(DAY_END, sun.sunset));
-                const label = `Sunrise ${hhmm(sun.sunrise)} · sunset ${hhmm(sun.sunset)}${d.place ? ` · ${d.place}` : ""}`;
+                const label = `Sunrise ${hhmm(sun.sunrise)} ${cityLabel(d.place) ?? ""} · sunset ${hhmm(sun.sunset)} ${cityLabel(d.endPlace ?? d.place) ?? ""}`;
                 return (
                   <span title={label} aria-hidden="true">
                     {rise > DAY_START && (
                       <span
-                        className="absolute inset-x-0 top-0 bg-ink/[0.07]"
+                        className="absolute inset-x-0 top-0 bg-ink/[0.045]"
                         style={{ height: `${pct(rise)}%` }}
                       />
                     )}
                     {set < DAY_END && (
                       <span
-                        className="absolute inset-x-0 bottom-0 bg-ink/[0.07]"
+                        className="absolute inset-x-0 bottom-0 bg-ink/[0.045]"
                         style={{ top: `${pct(set)}%` }}
                       />
                     )}
@@ -139,6 +160,13 @@ export function WeekGrid({
                   </span>
                 );
               })()}
+              {/* After the planning cutoff — drawn, but never counted as free. */}
+              <span
+                className="absolute inset-x-0 bottom-0 bg-line/50"
+                style={{ top: `${pct(PLAN_END)}%` }}
+                title="Not counted — you don't plan anything this late"
+                aria-hidden="true"
+              />
               {HOURS.map((h) => (
                 <span
                   key={h}
@@ -192,7 +220,7 @@ export function WeekGrid({
                 return (
                   <span
                     key={f.key}
-                    className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[9.5px] font-semibold text-ok"
+                    className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[9.5px] font-semibold text-ink-soft"
                     style={{ top: `${pct(f.start)}%`, height: `${h}%` }}
                   >
                     {dur(f.end - f.start)} free
@@ -219,10 +247,10 @@ export function WeekGrid({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-2.5">
         {[
-          ["bg-ok-soft", "free"],
-          ["bg-accent", "travel"],
-          ["bg-soon", "booked event"],
-          ["bg-line", "meal window"],
+          ["bg-raised border border-line", "free"],
+          ["bg-line-strong", "travel"],
+          ["bg-accent", "booked event"],
+          ["bg-ok-soft border border-ok/25", "meal window"],
         ].map(([c, label]) => (
           <span key={label} className="flex items-center gap-1.5 text-[11px] text-ink-soft">
             <span className={`size-3 rounded-[3px] ${c}`} aria-hidden="true" />
@@ -232,7 +260,7 @@ export function WeekGrid({
         {days.some((d) => sunTimes(d.place, d.date)) && (
           <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
             <span
-              className="size-3 rounded-[3px] border-t border-dashed border-soon/70 bg-ink/[0.07]"
+              className="size-3 rounded-[3px] border-t border-dashed border-soon/70 bg-ink/[0.045]"
               aria-hidden="true"
             />
             before sunrise / after sunset

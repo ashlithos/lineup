@@ -5,7 +5,8 @@ import { durationMin, localDayMs, localMins } from "./localtime";
 // see at a glance where an activity would actually fit.
 
 export const DAY_START = 7 * 60; // 07:00
-export const DAY_END = 23 * 60; // 23:00
+export const DAY_END = 23 * 60; // 23:00 — how far the grid draws
+export const PLAN_END = 22 * 60; // 22:00 — nothing gets planned after this
 const MIN_FREE = 45; // a shorter gap isn't really usable
 
 export type BlockKind = "travel" | "event" | "meal" | "unknown";
@@ -32,8 +33,10 @@ export interface DayPlan {
   free: FreeSlot[];
   freeMinutes: number;
   hasUnknown: boolean;
-  /** Where you wake up that day — the stay covering the night, if any. */
+  /** Where you wake up — the stay covering last night, or the day's origin. */
   place?: string;
+  /** Where you go to sleep. Differs from `place` on a travel day. */
+  endPlace?: string;
 }
 
 const DAY = 86_400_000;
@@ -65,8 +68,8 @@ const DEFAULT_LEN: Record<string, number> = {
 // Typical meal windows. These are a display-only guide — never bookings, never
 // written to your data — so they're only drawn where nothing else is scheduled.
 const MEALS: [number, number, string][] = [
-  [12 * 60, 13 * 60 + 30, "Lunch"],
-  [19 * 60, 20 * 60 + 30, "Dinner"],
+  [12 * 60, 13 * 60, "Lunch"], // 60 min
+  [19 * 60, 20 * 60 + 30, "Dinner"], // 90 min
 ];
 
 function clamp(v: number) {
@@ -147,22 +150,36 @@ export function buildWeek(
     const free: FreeSlot[] = [];
     let cursor = DAY_START;
     for (const bl of blocks) {
-      if (bl.start - cursor >= MIN_FREE)
-        free.push({ key: `f-${d}-${cursor}`, start: cursor, end: bl.start });
+      const until = Math.min(bl.start, PLAN_END);
+      if (until - cursor >= MIN_FREE)
+        free.push({ key: `f-${d}-${cursor}`, start: cursor, end: until });
       cursor = Math.max(cursor, bl.end);
     }
-    if (DAY_END - cursor >= MIN_FREE)
-      free.push({ key: `f-${d}-${cursor}`, start: cursor, end: DAY_END });
+    if (PLAN_END - cursor >= MIN_FREE)
+      free.push({ key: `f-${d}-${cursor}`, start: cursor, end: PLAN_END });
 
     // The city for this day: wherever you're checked in that night. Falls back
     // to the previous day's place so a departure day still knows where it starts.
-    const stay = live.find((b) => {
-      if (b.category !== "hotel") return false;
-      const from = dayOf(b.eventAt);
-      const to = b.checkOut ? dayOf(b.checkOut) : from + DAY;
-      return d >= from && d < to;
-    });
-    const place = stay?.location ?? days[days.length - 1]?.place;
+    const stayOn = (day: number) =>
+      live.find((b) => {
+        if (b.category !== "hotel") return false;
+        const from = dayOf(b.eventAt);
+        const to = b.checkOut ? dayOf(b.checkOut) : from + DAY;
+        return day >= from && day < to;
+      });
+
+    // Where the day ends: tonight's bed. Where it starts: last night's bed, or
+    // — on the first day — wherever the day's first journey set off from.
+    const endPlace = stayOn(d)?.location;
+    const leg = live
+      .filter((b) => isTransport(b.category) && dayOf(b.eventAt) === d)
+      .sort((a, b) => a.eventAt.localeCompare(b.eventAt))[0];
+    const origin = leg?.location?.split(/[→⇄]/)[0]?.trim();
+    const place =
+      stayOn(d - DAY)?.location ??
+      days[days.length - 1]?.endPlace ??
+      origin ??
+      endPlace;
 
     days.push({
       key: String(d),
@@ -172,6 +189,7 @@ export function buildWeek(
       freeMinutes: free.reduce((n, f) => n + (f.end - f.start), 0),
       hasUnknown,
       place,
+      endPlace: endPlace ?? (leg?.location?.split(/[→⇄]/)[1]?.trim() || place),
     });
   }
   return days;

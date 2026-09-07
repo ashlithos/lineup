@@ -51,6 +51,19 @@ function stayNights(b: Booking): number[] {
   return out.length ? out : [start];
 }
 
+// The reservation number a booking carries, however the email phrased it.
+// Codes are 5-12 chars, letters and digits, and must contain at least one
+// digit — that filters out words like "ECONOMY" that follow "booking".
+function confirmationOf(b: Booking): string | null {
+  const notes = b.notes ?? "";
+  const m = notes.match(
+    /(?:confirmation|booking|reservation|order|trip)\s*(?:number|ref\.?|reference|code|id|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{4,11})\b/i,
+  );
+  const code = m?.[1]?.toUpperCase();
+  if (!code || !/\d/.test(code)) return null;
+  return code;
+}
+
 const overlaps = (a: string, b: string) =>
   a.includes(b) || b.includes(a) || a === b;
 
@@ -158,9 +171,34 @@ export function runRules(bookings: Booking[]): Finding[] {
     });
   }
 
-  // 6. True duplicates — same vendor, same day, same amount, same category.
+  // 6a. Same confirmation code twice — the surest duplicate there is. A
+  //     reservation number identifies one booking, so two rows carrying it are
+  //     the same thing imported twice (usually a re-sync with a different title).
+  const byConf = new Map<string, Booking[]>();
+  for (const b of live) {
+    const code = confirmationOf(b);
+    if (!code) continue;
+    if (!byConf.has(code)) byConf.set(code, []);
+    byConf.get(code)!.push(b);
+  }
+  const dupedIds = new Set<string>();
+  for (const [code, bs] of byConf) {
+    if (bs.length < 2) continue;
+    bs.forEach((b) => dupedIds.add(b.id));
+    found.push({
+      id: `dupeconf:${code}`,
+      severity: "check",
+      title: `Same reservation imported twice (${code})`,
+      detail: `${bs.length} bookings share confirmation ${code} — "${bs.map((b) => b.title).join('" and "')}". One of them can go.`,
+      bookingIds: bs.map((b) => b.id),
+      source: "rules",
+    });
+  }
+
+  // 6b. No confirmation code to compare, so fall back on vendor + day + amount.
   const dupe = new Map<string, Booking[]>();
   for (const b of live) {
+    if (dupedIds.has(b.id)) continue; // already reported by code
     const k = `${b.category}|${(b.vendor ?? "").toLowerCase()}|${b.eventAt.slice(0, 10)}|${b.amount ?? "-"}`;
     if (!dupe.has(k)) dupe.set(k, []);
     dupe.get(k)!.push(b);

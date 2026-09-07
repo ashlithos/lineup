@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   LineUp — Sol design system, "cool · Lilac" direction.
+   Neutral-first cool-gray canvas, Lilac as the one brand accent,
+   Figtree everywhere + DM Mono for numbers. Token names kept from
+   the prior theme so the whole app reskins through them.
+   ============================================================ */
+@theme {
+  /* canvas + surfaces (cool gray, derived to pair with Lilac) */
+  --color-paper: #f4f6f8;
+  --color-raised: #ffffff;
+  --color-ink: #21242c;
+  --color-ink-soft: #5c636f;
+  --color-ink-faint: #69717f;
+  --color-line: #e4e7ec;
+  --color-line-strong: #d3d7df;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* brand accent — Lilac (cool palette → primary one shade darker: lilac-600) */
+  --color-accent: #6e5ec8;
+  --color-accent-soft: #f1effe;
+  --color-accent-strong: #6051ab;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* semantic status (functional, not decorative) */
+  --color-urgent: #cf2a24;
+  --color-urgent-soft: #fceae8;
+  --color-soon: #9b6109;
+  --color-soon-soft: #faf0dc;
+  --color-ok: #087d4a;
+  --color-ok-soft: #e4f7ec;
+  --color-locked: #656c79;
+  --color-locked-soft: #eef0f3;
+
+  /* fonts — Figtree for everything, DM Mono for figures */
+  --font-sans: var(--font-figtree);
+  --font-serif: var(--font-figtree);
+  --font-mono: var(--font-dm-mono);
+
+  /* radii — rounded but not bubbly (12 buttons/inputs, 16 cards, 20 large) */
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  /* skeleton shimmer — registered in @theme so Tailwind emits the keyframes */
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  @keyframes shimmer {
+    from {
+      background-position: -220px 0;
+    }
+    to {
+      background-position: calc(220px + 100%) 0;
+    }
   }
 }
 
+html {
+  background: var(--color-paper);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+/* Skeleton block: `sk` paints the gradient, the `animate-shimmer` utility
+   (from @theme) sweeps it. Both are Tailwind-managed so neither is stripped. */
+@utility sk {
+  background-color: var(--color-line);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.75),
+    transparent
+  );
+  background-size: 220px 100%;
+  background-repeat: no-repeat;
 }

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LineUp · consolidation options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f4f6f8; --raised:#fff; --ink:#21242c; --soft:#5c636f; --faint:#8c93a0;
+    --line:#e4e7ec; --strong:#d3d7df; --accent:#7667cb; --accent-soft:#f1effe;
+    --ok:#0a9457; --ok-soft:#e4f7ec; --soon:#b5710a; --soon-soft:#faf0dc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Figtree",system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 18px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:25px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px}
+  .lede{color:var(--soft);font-size:15px;margin:0 0 6px;max-width:64ch;line-height:1.5}
+  .note{color:var(--faint);font-size:13px;margin:0 0 34px}
+  section{margin:0 0 30px;padding:0 0 30px;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+  .sec-n{font-family:"DM Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+  h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+  .sec-sub{color:var(--soft);font-size:14px;margin:5px 0 18px;line-height:1.5;max-width:70ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px;align-items:start}
+  .opt{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:13px 12px 14px}
+  .opt.now{background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 9px,#eef1f4 9px,#eef1f4 18px)}
+  .opt-h{display:flex;align-items:center;gap:7px;margin:0 0 3px}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+  .tag.now{background:#e7eaef;color:var(--faint)}
+  .tag.a{background:var(--accent-soft);color:var(--accent)}
+  .tag.rec{background:var(--ok-soft);color:var(--ok)}
+  .opt-name{font-size:13px;font-weight:600}
+  .opt-desc{font-size:11.5px;color:var(--soft);line-height:1.45;margin:2px 0 11px;min-height:32px}
+  .stage{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:11px 9px}
+
+  /* agenda mini */
+  .drow{display:flex;gap:8px}
+  .rdate{width:38px;flex:0 0 38px;text-align:right;padding-top:1px}
+  .rdate .wd{font-size:12px;font-weight:600;line-height:1.1}
+  .rdate .dm{font-size:10px;color:var(--faint)}
+  .spine{position:relative;width:10px;flex:0 0 10px;display:flex;justify-content:center}
+  .spine .ln{width:1px;background:var(--line);flex:1}
+  .spine .ln.hot{width:3px;background:var(--accent);border-radius:2px;opacity:.4}
+  .dot{position:absolute;top:5px;width:8px;height:8px;border-radius:99px;background:var(--accent)}
+  .dot.f{background:var(--faint)}
+  .cont-col{flex:1;min-width:0;padding-bottom:9px}
+  .card{background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+  .ctop{display:flex;align-items:center;gap:9px}
+  .em{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;background:var(--paper);border-radius:8px;font-size:15px}
+  .ttl{flex:1;min-width:0;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pr{font-family:"DM Mono",monospace;font-size:12px;font-weight:500;flex:0 0 auto}
+  .sub{padding-left:37px;font-size:10.5px;color:var(--faint);margin-top:3px}
+  .chip{display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:9px;background:var(--accent-soft);margin-bottom:6px}
+  .chip .e{font-size:12px;opacity:.8}.chip .t{font-size:11px;color:var(--accent);font-weight:500}
+  .chip .n{margin-left:auto;font-size:10px;color:var(--accent);opacity:.75;font-family:"DM Mono",monospace}
+  .ghost{padding-left:2px;font-size:10.5px;color:var(--faint);padding-bottom:9px;font-style:italic}
+  .trav{display:flex;align-items:center;gap:7px;font-size:11px;padding:4px 0}
+  .trav .who{font-weight:600}.trav .code{font-family:"DM Mono",monospace;color:var(--faint);font-size:10px}
+  .trav .amt{margin-left:auto;font-family:"DM Mono",monospace;color:var(--soft);font-size:10px}
+  .travwrap{padding-left:37px;border-top:1px dashed var(--line);margin-top:6px;padding-top:4px}
+  .toggle{padding-left:37px;font-size:11px;color:var(--accent);font-weight:500;margin-top:4px}
+  .pill-s{font-size:10px;font-weight:600;background:var(--paper);color:var(--soft);border:1px solid var(--line);padding:1px 7px;border-radius:99px}
+
+  /* grouped block (1C) */
+  .block{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--raised)}
+  .block .edge{background:var(--accent-soft);padding:10px 9px;text-align:center;flex:0 0 52px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .block .edge .r{font-size:11px;font-weight:700;color:var(--accent)}
+  .block .edge .s{font-size:9px;color:var(--accent);opacity:.7}
+  .block .bd{padding:10px 11px;flex:1;min-width:0}
+  .block .bd .t{font-size:13px;font-weight:600}
+  .block .bd .m{font-size:11px;color:var(--faint);margin-top:2px}
+  .block .bd .p{font-family:"DM Mono",monospace;font-size:12px;margin-top:4px}
+
+  /* flight paired bracket (2C) */
+  .bracket{display:flex;gap:7px}
+  .bracket .bar{flex:0 0 3px;background:var(--accent);opacity:.3;border-radius:3px}
+  .bracket .stk{flex:1;min-width:0}
+  .blabel{font-size:10px;color:var(--accent);font-weight:600;margin-bottom:5px}
+
+  /* share cards */
+  .share{max-width:300px;background:var(--raised);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .hero{height:110px;background:linear-gradient(135deg,#c98a4b,#7a5a86 70%,#3f4a6b);position:relative;display:flex;align-items:flex-end}
+  .hero .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),transparent 62%)}
+  .hero .cap{position:relative;padding:10px 13px;color:#fff}
+  .hero .cap .t{font-size:18px;font-weight:700;line-height:1.05}.hero .cap .d{font-size:11px;opacity:.9;margin-top:1px}
+  .band{height:78px;background:linear-gradient(135deg,#c98a4b,#7a5a86 70%,#3f4a6b)}
+  .sbody{padding:11px 13px 6px}
+  .stitle{font-size:17px;font-weight:700;letter-spacing:-.01em}
+  .sdate{font-size:11px;color:var(--faint);margin:1px 0 10px}
+  .booked{font-size:10px;font-weight:600;color:var(--ok);text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px}
+  .srow{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--line)}
+  .srow:first-of-type{border-top:none}
+  .srow .e{width:24px;flex:0 0 24px;text-align:center;font-size:14px}
+  .srow .m{flex:1;min-width:0}.srow .m .st{font-size:12.5px;font-weight:500;line-height:1.2}
+  .srow .m .ss{font-size:10.5px;color:var(--faint);margin-top:1px}
+  .srow .lk{color:var(--faint);font-size:12px}
+  .rt{background:var(--ok-soft);color:var(--ok);font-size:9px;font-weight:600;padding:1px 5px;border-radius:99px;margin-left:4px}
+  .thead{display:flex;gap:10px;align-items:center;padding:12px 13px 4px}
+  .thumb{width:52px;height:52px;flex:0 0 52px;border-radius:11px;background:linear-gradient(135deg,#c98a4b,#7a5a86 70%,#3f4a6b)}
+  .sfoot{text-align:center;padding:10px;color:var(--faint);font-size:11px}
+  .callout{margin-top:16px;background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:11px 13px;font-size:12.5px;color:var(--soft);line-height:1.5}
+  .callout b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Consolidation — pick per section</h1>
+  <p class="lede">Each problem below has a striped <b>“Now”</b> tile (what's live) plus three real options rendered in the LineUp style. Nothing is shipped. Reply with e.g. <b>“1B, 2A, 3C”</b> and I'll build exactly those.</p>
+  <p class="note">Zion &amp; Vegas · Dec 16–22, 2026</p>
+
+  <!-- SECTION 1 -->
+  <section>
+    <div class="sec-h"><span class="sec-n">01</span><h2>One hotel, three nights</h2></div>
+    <p class="sec-sub">A 3-night stay is one booking but draws as three identical cards, with $762 stamped on each — reads like $2,286.</p>
+    <div class="grid">
+      <!-- NOW -->
+      <div class="opt now">
+        <div class="opt-h"><span class="tag now">Now</span></div>
+        <div class="opt-desc">One card per night, price repeated three times.</div>
+        <div class="stage">
+          <div class="drow"><div class="rdate"><div class="wd">Sat</div><div class="dm">Dec 19</div></div><div class="spine"><span class="dot"></span><span class="ln"></span></div><div class="cont-col"><div class="card"><div class="ctop"><span class="em">🛏️</span><span class="ttl">Vdara · Las Vegas</span><span class="pr">$762</span></div><div class="sub">Night 1 of 3</div></div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Sun</div><div class="dm">Dec 20</div></div><div class="spine"><span class="dot"></span><span class="ln"></span></div><div class="cont-col"><div class="card"><div class="ctop"><span class="em">🛏️</span><span class="ttl">Vdara · Las Vegas</span><span class="pr">$762</span></div><div class="sub">Night 2 of 3</div></div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Mon</div><div class="dm">Dec 21</div></div><div class="spine"><span class="dot f"></span><span class="ln"></span></div><div class="cont-col"><div class="card"><div class="ctop"><span class="em">🛏️</span><span class="ttl">Vdara · Las Vegas</span><span class="pr">$762</span></div><div class="sub">Night 3 of 3</div></div></div></div>
+        </div>
+      </div>
+      <!-- 1A -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option A</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Full card + “still here” chips</div>
+        <div class="opt-desc">Full card on check-in; later nights shrink to a tinted “still checked in” chip. Keeps the per-night cue.</div>
+        <div class="stage">
+          <div class="drow"><div class="rdate"><div class="wd">Sat</div><div class="dm">Dec 19</div></div><div class="spine"><span class="dot"></span><span class="ln hot"></span></div><div class="cont-col"><div class="card"><div class="ctop"><span class="em">🛏️</span><span class="ttl">Vdara · Las Vegas</span><span class="pr">$762</span></div><div class="sub">Dec 19 → 22 · 3 nights · in 3 PM</div></div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Sun</div><div class="dm">Dec 20</div></div><div class="spine"><span class="dot"></span><span class="ln hot"></span></div><div class="cont-col"><div class="chip"><span class="e">🛏️</span><span class="t">Vdara — still here</span><span class="n">2/3</span></div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Mon</div><div class="dm">Dec 21</div></div><div class="spine"><span class="dot f"></span><span class="ln hot"></span></div><div class="cont-col"><div class="chip"><span class="e">🛏️</span><span class="t">Vdara — last night</span><span class="n">3/3</span></div></div></div>
+        </div>
+      </div>
+      <!-- 1B -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option B</span></div>
+        <div class="opt-name">Card once, spine only</div>
+        <div class="opt-desc">Full card on check-in; other nights are just a filled accent spine. Cleanest, but no per-night label.</div>
+        <div class="stage">
+          <div class="drow"><div class="rdate"><div class="wd">Sat</div><div class="dm">Dec 19</div></div><div class="spine"><span class="dot"></span><span class="ln hot"></span></div><div class="cont-col"><div class="card"><div class="ctop"><span class="em">🛏️</span><span class="ttl">Vdara · Las Vegas</span><span class="pr">$762</span></div><div class="sub">Dec 19 → 22 · 3 nights · in 3 PM</div></div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Sun</div><div class="dm">Dec 20</div></div><div class="spine"><span class="dot"></span><span class="ln hot"></span></div><div class="cont-col"><div class="ghost">· at Vdara</div></div></div>
+          <div class="drow"><div class="rdate"><div class="wd">Mon</div><div class="dm">Dec 21</div></div><div class="spine"><span class="dot f"></span><span class="ln hot"></span></div><div class="cont-col"><div class="ghost">· at Vdara</div></div></div>
+        </div>
+      </div>
+      <!-- 1C -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option C</span></div>
+        <div class="opt-name">One grouped block</div>
+        <div class="opt-desc">The stay leaves the day rail entirely and becomes a single block that brackets its dates. Most compact.</div>
+        <div class="stage">
+          <div class="block">
+            <div class="edge"><div class="r">Dec<br>19–22</div><div class="s">Sat–Mon</div></div>
+            <div class="bd"><div class="t">Vdara Hotel &amp; Spa</div><div class="m">Las Vegas · 3 nights · check-in 3 PM</div><div class="p">$762</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2 -->
+  <section>
+    <div class="sec-h"><span class="sec-n">02</span><h2>Two tickets, same flight</h2></div>
+    <p class="sec-sub">You + your parents on the identical Southwest flight under two confirmations (yours points, theirs cash). Must stay two reservations underneath — only the view merges.</p>
+    <div class="grid">
+      <!-- NOW -->
+      <div class="opt now">
+        <div class="opt-h"><span class="tag now">Now</span></div>
+        <div class="opt-desc">Two identical cards, no travelers, outbound date only.</div>
+        <div class="stage">
+          <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · SJC ⇄ LAS</span><span class="pr">$539</span></div><div class="sub">San Jose ⇄ Las Vegas</div></div>
+          <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · SJC ⇄ LAS</span><span class="pr"></span></div><div class="sub">San Jose ⇄ Las Vegas</div></div>
+        </div>
+      </div>
+      <!-- 2A -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option A</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Merged, travelers shown</div>
+        <div class="opt-desc">One card; each traveler a tap-through row to their own reservation. Shows round trip.</div>
+        <div class="stage">
+          <div class="card">
+            <div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · San Jose ⇄ Las Vegas</span><span class="pr">2 tix</span></div>
+            <div class="sub">Out Wed Dec 16 · Back Tue Dec 22</div>
+            <div class="travwrap">
+              <div class="trav"><span class="who">You</span><span class="code">CSDAC9</span><span class="amt">19k pts</span></div>
+              <div class="trav"><span class="who">Parents</span><span class="code">CSFVLP</span><span class="amt">$539</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 2B -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option B</span></div>
+        <div class="opt-name">Merged, collapsed count</div>
+        <div class="opt-desc">One tidy card with a “2 travelers” pill; tap to expand the names. Least clutter.</div>
+        <div class="stage">
+          <div class="card">
+            <div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · San Jose ⇄ Las Vegas</span><span class="pill-s">2 travelers</span></div>
+            <div class="sub">Out Wed Dec 16 · Back Tue Dec 22</div>
+            <div class="toggle">▸ You &amp; parents · $539 + 19k pts</div>
+          </div>
+        </div>
+      </div>
+      <!-- 2C -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option C</span></div>
+        <div class="opt-name">Two cards, bracketed</div>
+        <div class="opt-desc">Keeps both cards fully separate but visually paired under a label. Most literal to the data.</div>
+        <div class="stage">
+          <div class="bracket">
+            <div class="bar"></div>
+            <div class="stk">
+              <div class="blabel">2 reservations · same flight</div>
+              <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · SJC ⇄ LAS</span><span class="pr">19k pts</span></div><div class="sub">You · CSDAC9 · out Dec 16 / back Dec 22</div></div>
+              <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">Southwest · SJC ⇄ LAS</span><span class="pr">$539</span></div><div class="sub">Parents · CSFVLP · out Dec 16 / back Dec 22</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section style="border-bottom:none">
+    <div class="sec-h"><span class="sec-n">03</span><h2>The card your friend sees</h2></div>
+    <p class="sec-sub">All three add a cover photo and fix flights to show the return date (“Out Dec 16 · Back Dec 22”). They differ only in how the photo is treated.</p>
+    <div class="grid">
+      <!-- NOW -->
+      <div class="opt now">
+        <div class="opt-h"><span class="tag now">Now</span></div>
+        <div class="opt-desc">No photo; flight shows only the fly-out day.</div>
+        <div class="stage" style="display:flex;justify-content:center">
+          <div class="share">
+            <div class="sbody" style="padding-top:14px">
+              <div class="stitle">📍 Zion &amp; Vegas</div><div class="sdate">Dec 16 – 22, 2026</div>
+              <p class="booked">Booked</p>
+              <div class="srow"><span class="e">✈️</span><div class="m"><div class="st">Southwest · San Jose ⇄ Las Vegas</div><div class="ss">Wed, Dec 16</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">SpringHill Suites · Zion</div><div class="ss">3 nights · Dec 16</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">Vdara · Las Vegas</div><div class="ss">3 nights · Dec 19</div></div><span class="lk">↗</span></div>
+            </div>
+            <div class="sfoot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+      <!-- 3A -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option A</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Full-bleed photo hero</div>
+        <div class="opt-desc">Title sits on the photo. Most immersive — feels like an invite.</div>
+        <div class="stage" style="display:flex;justify-content:center">
+          <div class="share">
+            <div class="hero"><div class="ov"></div><div class="cap"><div class="t">Zion &amp; Vegas</div><div class="d">Dec 16 – 22 · 6 nights</div></div></div>
+            <div class="sbody">
+              <p class="booked">Booked · 4 reservations</p>
+              <div class="srow"><span class="e">✈️</span><div class="m"><div class="st">Southwest · San Jose ⇄ Las Vegas</div><div class="ss">Out Dec 16 · Back Dec 22<span class="rt">round trip</span></div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">SpringHill Suites · Zion</div><div class="ss">Dec 16 → 19 · 3 nights</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">Vdara · Las Vegas</div><div class="ss">Dec 19 → 22 · 3 nights</div></div><span class="lk">↗</span></div>
+            </div>
+            <div class="sfoot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+      <!-- 3B -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option B</span></div>
+        <div class="opt-name">Photo band, title below</div>
+        <div class="opt-desc">Photo as a top band; title on white beneath. Most legible title.</div>
+        <div class="stage" style="display:flex;justify-content:center">
+          <div class="share">
+            <div class="band"></div>
+            <div class="sbody" style="padding-top:12px">
+              <div class="stitle">Zion &amp; Vegas</div><div class="sdate">Dec 16 – 22, 2026 · 6 nights</div>
+              <p class="booked">Booked · 4 reservations</p>
+              <div class="srow"><span class="e">✈️</span><div class="m"><div class="st">Southwest · San Jose ⇄ Las Vegas</div><div class="ss">Out Dec 16 · Back Dec 22</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">SpringHill Suites · Zion</div><div class="ss">Dec 16 → 19 · 3 nights</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">Vdara · Las Vegas</div><div class="ss">Dec 19 → 22 · 3 nights</div></div><span class="lk">↗</span></div>
+            </div>
+            <div class="sfoot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+      <!-- 3C -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option C</span></div>
+        <div class="opt-name">Compact thumbnail</div>
+        <div class="opt-desc">Small photo beside the title. Most restrained — reads like a document, not a postcard.</div>
+        <div class="stage" style="display:flex;justify-content:center">
+          <div class="share">
+            <div class="thead"><div class="thumb"></div><div><div class="stitle" style="font-size:16px">Zion &amp; Vegas</div><div class="sdate" style="margin-bottom:0">Dec 16 – 22 · 6 nights</div></div></div>
+            <div class="sbody" style="padding-top:8px">
+              <p class="booked">Booked · 4 reservations</p>
+              <div class="srow"><span class="e">✈️</span><div class="m"><div class="st">Southwest · San Jose ⇄ Las Vegas</div><div class="ss">Out Dec 16 · Back Dec 22</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">SpringHill Suites · Zion</div><div class="ss">Dec 16 → 19 · 3 nights</div></div><span class="lk">↗</span></div>
+              <div class="srow"><span class="e">🛏️</span><div class="m"><div class="st">Vdara · Las Vegas</div><div class="ss">Dec 19 → 22 · 3 nights</div></div><span class="lk">↗</span></div>
+            </div>
+            <div class="sfoot">Planned with LineUp →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout"><b>Note on the photo:</b> all three use a placeholder gradient here — live, they'd pull whatever cover photo you attach to the Zion &amp; Vegas trip (same picker as the itinerary sidebar).</div>
+  </section>
+</div>
+</body>
+</html>

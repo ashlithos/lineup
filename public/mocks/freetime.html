@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LineUp · flight times + free-time view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f4f6f8;--raised:#fff;--ink:#21242c;--soft:#5c636f;--faint:#69717f;
+    --line:#e4e7ec;--strong:#d3d7df;--accent:#6e5ec8;--accent-soft:#f1effe;
+    --ok:#087d4a;--ok-soft:#e4f7ec;--soon:#9b6109;--soon-soft:#faf0dc;--urgent:#cf2a24;--urgent-soft:#fceae8;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Figtree",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:32px 18px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 7px}
+  .lede{color:var(--soft);font-size:15px;margin:0 0 8px;max-width:72ch;line-height:1.55}
+  .note{font-size:13px;color:var(--faint);margin:0 0 32px}
+  section{margin:0 0 40px;padding-bottom:34px;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 5px}
+  .sec-n{font-family:"DM Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+  h2{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .sec-sub{color:var(--soft);font-size:14px;margin:6px 0 20px;line-height:1.55;max-width:76ch}
+  h3{font-size:13px;font-weight:600;margin:20px 0 9px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;align-items:start}
+  .opt{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:14px 13px 16px}
+  .opt.now{background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 9px,#eef1f4 9px,#eef1f4 18px)}
+  .opt-h{display:flex;align-items:center;gap:7px;margin:0 0 3px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+  .tag.now{background:#e7eaef;color:var(--faint)}.tag.a{background:var(--accent-soft);color:var(--accent)}
+  .tag.rec{background:var(--ok-soft);color:var(--ok)}
+  .opt-name{font-size:13.5px;font-weight:600}
+  .opt-desc{font-size:12px;color:var(--soft);line-height:1.45;margin:3px 0 12px;min-height:56px}
+  .stage{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:12px 11px}
+
+  .card{background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px}
+  .ctop{display:flex;align-items:center;gap:9px}
+  .em{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;background:var(--paper);border-radius:8px;font-size:14px}
+  .ttl{flex:1;min-width:0;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{padding-left:37px;font-size:11px;color:var(--faint);margin-top:3px}
+
+  /* flight detail */
+  .fl{display:flex;align-items:center;gap:10px;padding-left:37px;margin-top:7px}
+  .fl .pt{text-align:center}
+  .fl .pt .t{font-family:"DM Mono",monospace;font-size:14px;font-weight:600;line-height:1.1}
+  .fl .pt .c{font-size:10px;color:var(--faint);margin-top:1px;letter-spacing:.03em}
+  .fl .mid{flex:1;text-align:center;position:relative}
+  .fl .mid .ln{height:1px;background:var(--strong);margin:0 6px}
+  .fl .mid .du{font-size:10px;color:var(--soft);background:var(--raised);padding:0 6px;position:relative;top:-7px;font-family:"DM Mono",monospace}
+  .miss{background:var(--soon-soft);color:var(--soon);border-radius:6px;padding:2px 7px;font-size:10.5px;font-weight:600;display:inline-block}
+
+  /* time bars (option B) */
+  .drow{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .dlab{width:52px;flex:0 0 52px;text-align:right}
+  .dlab .wd{font-size:12px;font-weight:600;line-height:1.1}
+  .dlab .dm{font-size:10px;color:var(--faint)}
+  .bar{flex:1;height:30px;background:#eef1f4;border-radius:6px;position:relative;overflow:hidden}
+  .blk{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;
+    font-size:9.5px;font-weight:600;overflow:hidden;white-space:nowrap}
+  .blk.move{background:var(--accent);color:#fff}
+  .blk.meal{background:repeating-linear-gradient(45deg,#e6e9ee,#e6e9ee 4px,#dde1e8 4px,#dde1e8 8px);color:var(--soft)}
+  .blk.free{background:var(--ok-soft);color:var(--ok)}
+  .blk.evt{background:var(--soon);color:#fff}
+  .blk.unk{background:repeating-linear-gradient(45deg,#faf0dc,#faf0dc 4px,#f2e4c8 4px,#f2e4c8 8px);color:var(--soon)}
+  .dtot{width:56px;flex:0 0 56px;font-size:10.5px;color:var(--soft);text-align:right;font-family:"DM Mono",monospace}
+  .hours{display:flex;padding-left:61px;padding-right:65px;margin-bottom:4px}
+  .hours span{flex:1;font-size:9px;color:var(--faint);font-family:"DM Mono",monospace}
+  .hours span:last-child{flex:0}
+
+  /* week grid (option A) */
+  .wk{display:grid;grid-template-columns:30px repeat(7,1fr);gap:2px;font-size:9px}
+  .wk .hd{font-size:9px;font-weight:600;text-align:center;color:var(--soft);padding-bottom:3px}
+  .wk .hr{color:var(--faint);text-align:right;padding-right:3px;font-family:"DM Mono",monospace;line-height:14px}
+  .cell{height:14px;background:#f7f8fa;border-radius:2px}
+  .cell.free{background:var(--ok-soft)}
+  .cell.move{background:var(--accent)}
+  .cell.meal{background:#e6e9ee}
+  .cell.evt{background:var(--soon)}
+
+  /* list (option C) */
+  .frow{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+  .frow:last-child{border-bottom:none}
+  .fd{width:52px;flex:0 0 52px;font-size:11px;font-weight:600}
+  .fd span{display:block;font-weight:400;color:var(--faint);font-size:10px}
+  .fb{flex:1;min-width:0}
+  .chip{display:inline-block;border-radius:99px;padding:2px 9px;font-size:10.5px;font-weight:600;margin:0 4px 4px 0}
+  .chip.free{background:var(--ok-soft);color:var(--ok)}
+  .chip.busy{background:var(--accent-soft);color:var(--accent)}
+  .chip.warn{background:var(--soon-soft);color:var(--soon)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+  .lg{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--soft)}
+  .sw{width:14px;height:10px;border-radius:3px}
+
+  .why{margin-top:20px;background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:13px 15px;font-size:13px;color:var(--soft);line-height:1.6}
+  .why b{color:var(--ink)}
+  .why.warn{border-left-color:var(--soon)}
+  table{width:100%;border-collapse:collapse;background:var(--raised);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin-top:8px}
+  th{text-align:left;padding:8px 11px;background:var(--paper);font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border-bottom:1px solid var(--line)}
+  td{padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+  tr:last-child td{border-bottom:none}
+  code{font-family:"DM Mono",monospace;font-size:11.5px;background:var(--paper);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Flight times &amp; free-time planning</h1>
+  <p class="lede">Two requests, one dependency between them: the free-time view is only as good as the times you have. Right now LineUp stores when a flight <em>leaves</em> but not when it <em>lands</em> — so it can't tell you how much of the day the flight eats.</p>
+  <p class="note">Canada Sep · Sep 17–23, 2026 · your real bookings</p>
+
+  <!-- ============ 1. FLIGHT TIMES ============ -->
+  <section>
+    <div class="sec-h"><span class="sec-n">01</span><h2>Flight departure, landing &amp; duration</h2></div>
+    <p class="sec-sub">The arrival times exist — they're sitting in the notes field as free text ("UA 2384 · Sep 23, 6:35 PM YUL → 9:48 PM SFO"). They're just not a real field, so nothing can compute with them.</p>
+
+    <div class="grid">
+      <div class="opt now">
+        <div class="opt-h"><span class="tag now">Now</span></div>
+        <div class="opt-desc">Only the departure date. No landing time, no duration — and no way to know how much of the day is gone.</div>
+        <div class="stage">
+          <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">United · YUL → SFO</span></div>
+            <div class="sub">Wed, Sep 23</div></div>
+          <div class="card"><div class="ctop"><span class="em">🚆</span><span class="ttl">VIA Rail · QBEC → MTRL</span></div>
+            <div class="sub">Tue, Sep 22</div></div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Proposed</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Departure → landing, with duration</div>
+        <div class="opt-desc">A proper <code>arriveAt</code> field, shown as a mini route strip. Duration is computed, never typed.</div>
+        <div class="stage">
+          <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">United · YUL → SFO</span></div>
+            <div class="fl">
+              <div class="pt"><div class="t">6:35 PM</div><div class="c">YUL · Wed 23</div></div>
+              <div class="mid"><div class="ln"></div><div class="du">6h 13m</div></div>
+              <div class="pt"><div class="t">9:48 PM</div><div class="c">SFO · Wed 23</div></div>
+            </div></div>
+          <div class="card"><div class="ctop"><span class="em">🚆</span><span class="ttl">VIA Rail · QBEC → MTRL</span></div>
+            <div class="fl">
+              <div class="pt"><div class="t">8:06 AM</div><div class="c">QBEC · Tue 22</div></div>
+              <div class="mid"><div class="ln"></div><div class="du">3h 20m</div></div>
+              <div class="pt"><div class="t">11:26 AM</div><div class="c">MTRL · Tue 22</div></div>
+            </div></div>
+          <div class="card"><div class="ctop"><span class="em">✈️</span><span class="ttl">United · SFO → YYZ</span></div>
+            <div class="fl" style="padding-left:37px">
+              <span class="miss">⚠ Landing time not in the email — add it</span>
+            </div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="why warn"><b>What this needs:</b> one new column (<code>arrive_at</code>), plus back-filling the times already sitting in your notes. Of your 6 travel legs I can recover <b>4</b> from the notes text (Porter, both Southwest, VIA Rail, United YUL→SFO). The <b>United SFO→YYZ</b> one genuinely never states an arrival, so it stays blank and gets flagged rather than guessed — I won't invent a landing time.</div>
+  </section>
+
+  <!-- ============ 2. FREE TIME ============ -->
+  <section>
+    <div class="sec-h"><span class="sec-n">02</span><h2>How much free time each day</h2></div>
+    <p class="sec-sub">Three ways to answer "what's actually open on Tuesday?". All three treat committed time the same — travel, booked events, and optional meal windows — and show what's left.</p>
+
+    <div class="grid">
+      <!-- A -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option A</span></div>
+        <div class="opt-name">Week grid</div>
+        <div class="opt-desc">A true calendar week: days across, hours down. Most precise and most familiar — but it's a dense grid that struggles at 375px and needs horizontal scroll.</div>
+        <div class="stage">
+          <div class="wk">
+            <div></div><div class="hd">Thu</div><div class="hd">Fri</div><div class="hd">Sat</div><div class="hd">Sun</div><div class="hd">Mon</div><div class="hd">Tue</div><div class="hd">Wed</div>
+            <div class="hr">8</div><div class="cell move"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div><div class="cell free"></div>
+            <div class="hr">10</div><div class="cell move"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div><div class="cell free"></div>
+            <div class="hr">12</div><div class="cell move"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell move"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell meal"></div>
+            <div class="hr">14</div><div class="cell move"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div>
+            <div class="hr">16</div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div>
+            <div class="hr">18</div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div>
+            <div class="hr">20</div><div class="cell meal"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell meal"></div><div class="cell move"></div>
+            <div class="hr">22</div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell free"></div><div class="cell move"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option B</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">Day bars</div>
+        <div class="opt-desc">One row per day, 7am–11pm across. Committed blocks are solid; what's left is green with the hours on it. Answers "how much is open" in one glance and works full-width on mobile.</div>
+        <div class="stage">
+          <div class="hours"><span>7a</span><span>10a</span><span>1p</span><span>4p</span><span>7p</span><span>10p</span></div>
+          <div class="drow"><div class="dlab"><div class="wd">Thu</div><div class="dm">Sep 17</div></div>
+            <div class="bar">
+              <div class="blk unk" style="left:0%;width:52%">flight · landing time unknown</div>
+              <div class="blk free" style="left:52%;width:29%">5h free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">~5h</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Fri</div><div class="dm">Sep 18</div></div>
+            <div class="bar">
+              <div class="blk free" style="left:0%;width:31%">5h free</div>
+              <div class="blk meal" style="left:31%;width:9%">lunch</div>
+              <div class="blk free" style="left:40%;width:41%">6h 30m free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">12h</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Sat</div><div class="dm">Sep 19</div></div>
+            <div class="bar">
+              <div class="blk free" style="left:0%;width:31%">5h free</div>
+              <div class="blk meal" style="left:31%;width:9%">lunch</div>
+              <div class="blk free" style="left:40%;width:41%">6h 30m free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">12h</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Sun</div><div class="dm">Sep 20</div></div>
+            <div class="bar">
+              <div class="blk free" style="left:0%;width:28%">4h 30m</div>
+              <div class="blk move" style="left:28%;width:19%">✈ Porter</div>
+              <div class="blk free" style="left:47%;width:34%">6h free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">10h 30m</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Mon</div><div class="dm">Sep 21</div></div>
+            <div class="bar">
+              <div class="blk free" style="left:0%;width:31%">5h free</div>
+              <div class="blk meal" style="left:31%;width:9%">lunch</div>
+              <div class="blk free" style="left:40%;width:41%">6h 30m free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">12h</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Tue</div><div class="dm">Sep 22</div></div>
+            <div class="bar">
+              <div class="blk move" style="left:6%;width:21%">🚆 VIA Rail</div>
+              <div class="blk free" style="left:27%;width:54%">8h 30m free</div>
+              <div class="blk meal" style="left:81%;width:9%">dinner</div>
+              <div class="blk free" style="left:90%;width:10%"></div>
+            </div><div class="dtot">9h 30m</div></div>
+
+          <div class="drow"><div class="dlab"><div class="wd">Wed</div><div class="dm">Sep 23</div></div>
+            <div class="bar">
+              <div class="blk free" style="left:0%;width:53%">8h 30m free</div>
+              <div class="blk move" style="left:53%;width:47%">✈ leave for YUL</div>
+            </div><div class="dtot">8h 30m</div></div>
+
+          <div class="legend">
+            <span class="lg"><span class="sw" style="background:var(--ok-soft)"></span>free</span>
+            <span class="lg"><span class="sw" style="background:var(--accent)"></span>travel</span>
+            <span class="lg"><span class="sw" style="background:#e6e9ee"></span>meal window</span>
+            <span class="lg"><span class="sw" style="background:var(--soon)"></span>booked event</span>
+            <span class="lg"><span class="sw" style="background:repeating-linear-gradient(45deg,#faf0dc,#faf0dc 3px,#f2e4c8 3px,#f2e4c8 6px)"></span>time unknown</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- C -->
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Option C</span></div>
+        <div class="opt-name">Free-slot list</div>
+        <div class="opt-desc">No timeline at all — just the open windows written out per day. Lightest to read and to build, and the most mobile-friendly, but you lose the shape of the day.</div>
+        <div class="stage">
+          <div class="frow"><div class="fd">Thu<span>Sep 17</span></div><div class="fb">
+            <span class="chip warn">landing time unknown</span><span class="chip free">evening open</span></div></div>
+          <div class="frow"><div class="fd">Fri<span>Sep 18</span></div><div class="fb">
+            <span class="chip free">fully free · 12h</span></div></div>
+          <div class="frow"><div class="fd">Sat<span>Sep 19</span></div><div class="fb">
+            <span class="chip free">fully free · 12h</span></div></div>
+          <div class="frow"><div class="fd">Sun<span>Sep 20</span></div><div class="fb">
+            <span class="chip busy">✈ 12:55–2:27</span><span class="chip free">7a–12:30 · 4h 30m</span><span class="chip free">2:30–7p · 4h 30m</span></div></div>
+          <div class="frow"><div class="fd">Mon<span>Sep 21</span></div><div class="fb">
+            <span class="chip free">fully free · 12h</span></div></div>
+          <div class="frow"><div class="fd">Tue<span>Sep 22</span></div><div class="fb">
+            <span class="chip busy">🚆 8:06–11:26</span><span class="chip free">11:30–7p · 7h 30m</span></div></div>
+          <div class="frow"><div class="fd">Wed<span>Sep 23</span></div><div class="fb">
+            <span class="chip busy">✈ leaves 6:35p</span><span class="chip free">7a–3:30p · 8h 30m</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="why"><b>Why B:</b> your question is "how much is open", which is a question about <em>quantity</em> — and a filled bar answers quantity faster than a grid you have to read cell by cell. It also survives 375px, where the week grid (A) needs horizontal scrolling. And unlike C, you still see <em>where</em> in the day the free block sits, which is what decides whether it fits a museum or just a coffee.<br><br>
+    <b>A</b> is the right pick if you want to actually schedule to the half-hour. <b>C</b> is the cheapest and reads well on a phone, but "6h 30m free" without a position doesn't tell you if it's morning or evening.</div>
+
+    <h3>The meal-window question — your call</h3>
+    <table>
+      <tr><th style="width:26%">Approach</th><th>What it means</th></tr>
+      <tr><td><strong>Generic windows</strong> <span class="tag rec" style="margin-left:4px">suggested</span></td><td>Shade a standard lunch (12:00–1:30) and dinner (7:00–8:30) on every day, clearly styled as a placeholder, not a booking. Toggleable, and never written to your data. Nothing is invented — it's a visual guide only.</td></tr>
+      <tr><td><strong>Only real bookings</strong></td><td>Show meals only when you've actually booked a restaurant. Most honest, but then every day looks wide open and you'll mentally re-subtract meals each time.</td></tr>
+      <tr><td><strong>Ask per trip</strong></td><td>Let you set the meal windows once per trip (some trips you eat at 9pm). Most accurate, one more thing to configure.</td></tr>
+    </table>
+    <div class="why"><b>Note:</b> I've drawn the meal windows in the mock as hatched grey precisely so they never read as real reservations. Whichever you pick, they'd stay a display-only overlay — no fake bookings written into your data.</div>
+  </section>
+
+  <!-- ============ 3. WHERE IT LIVES ============ -->
+  <section style="border-bottom:none">
+    <div class="sec-h"><span class="sec-n">03</span><h2>Where it goes in the app</h2></div>
+    <p class="sec-sub">The chapter view you approved is the trip's "shape". This is a different question — the day's shape — so it wants its own surface rather than replacing what's there.</p>
+    <div class="grid">
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Placement 1</span><span class="tag rec">recommended</span></div>
+        <div class="opt-name">A toggle on the trip</div>
+        <div class="opt-desc" style="min-height:auto">Two small tabs on the trip header — <b>Itinerary</b> (the chapters) and <b>Free time</b> (the bars). Same trip, two lenses, no new navigation.</div>
+      </div>
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Placement 2</span></div>
+        <div class="opt-name">Below the chapters</div>
+        <div class="opt-desc" style="min-height:auto">A collapsible "Free time" panel under the itinerary, like the density strip. Always discoverable, but makes an already-long trip page longer.</div>
+      </div>
+      <div class="opt">
+        <div class="opt-h"><span class="tag a">Placement 3</span></div>
+        <div class="opt-name">In the sidebar</div>
+        <div class="opt-desc" style="min-height:auto">A compact version in the desktop sidebar next to the photo. Nice on desktop, but there's no sidebar on mobile — so it would be desktop-only.</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

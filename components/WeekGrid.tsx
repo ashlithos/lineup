@@ -11,6 +11,7 @@ import {
   type Block,
 } from "@/lib/freetime";
 import { localDate } from "@/lib/localtime";
+import { sunTimes } from "@/lib/sun";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
@@ -100,6 +101,44 @@ export function WeekGrid({
               key={d.key}
               className="relative h-[320px] overflow-hidden rounded-lg bg-ok-soft/60"
             >
+              {/* Daylight: the hours before sunrise and after sunset are shaded,
+                  so the usable part of the day reads at a glance. Computed for
+                  the city you're actually in that day. */}
+              {(() => {
+                const sun = sunTimes(d.place, d.date);
+                if (!sun) return null;
+                const rise = Math.max(DAY_START, Math.min(DAY_END, sun.sunrise));
+                const set = Math.max(DAY_START, Math.min(DAY_END, sun.sunset));
+                const label = `Sunrise ${hhmm(sun.sunrise)} · sunset ${hhmm(sun.sunset)}${d.place ? ` · ${d.place}` : ""}`;
+                return (
+                  <span title={label} aria-hidden="true">
+                    {rise > DAY_START && (
+                      <span
+                        className="absolute inset-x-0 top-0 bg-ink/[0.07]"
+                        style={{ height: `${pct(rise)}%` }}
+                      />
+                    )}
+                    {set < DAY_END && (
+                      <span
+                        className="absolute inset-x-0 bottom-0 bg-ink/[0.07]"
+                        style={{ top: `${pct(set)}%` }}
+                      />
+                    )}
+                    {rise > DAY_START && (
+                      <span
+                        className="absolute inset-x-0 border-t border-dashed border-soon/70"
+                        style={{ top: `${pct(rise)}%` }}
+                      />
+                    )}
+                    {set < DAY_END && (
+                      <span
+                        className="absolute inset-x-0 border-t border-dashed border-soon/70"
+                        style={{ top: `${pct(set)}%` }}
+                      />
+                    )}
+                  </span>
+                );
+              })()}
               {HOURS.map((h) => (
                 <span
                   key={h}
@@ -190,6 +229,15 @@ export function WeekGrid({
             {label}
           </span>
         ))}
+        {days.some((d) => sunTimes(d.place, d.date)) && (
+          <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+            <span
+              className="size-3 rounded-[3px] border-t border-dashed border-soon/70 bg-ink/[0.07]"
+              aria-hidden="true"
+            />
+            before sunrise / after sunset
+          </span>
+        )}
         {anyUnknown && (
           <span className="flex items-center gap-1.5 text-[11px] text-soon">
             <span

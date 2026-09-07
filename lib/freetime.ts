@@ -32,6 +32,8 @@ export interface DayPlan {
   free: FreeSlot[];
   freeMinutes: number;
   hasUnknown: boolean;
+  /** Where you wake up that day — the stay covering the night, if any. */
+  place?: string;
 }
 
 const DAY = 86_400_000;
@@ -152,6 +154,16 @@ export function buildWeek(
     if (DAY_END - cursor >= MIN_FREE)
       free.push({ key: `f-${d}-${cursor}`, start: cursor, end: DAY_END });
 
+    // The city for this day: wherever you're checked in that night. Falls back
+    // to the previous day's place so a departure day still knows where it starts.
+    const stay = live.find((b) => {
+      if (b.category !== "hotel") return false;
+      const from = dayOf(b.eventAt);
+      const to = b.checkOut ? dayOf(b.checkOut) : from + DAY;
+      return d >= from && d < to;
+    });
+    const place = stay?.location ?? days[days.length - 1]?.place;
+
     days.push({
       key: String(d),
       date: new Date(d).toISOString(),
@@ -159,6 +171,7 @@ export function buildWeek(
       free,
       freeMinutes: free.reduce((n, f) => n + (f.end - f.start), 0),
       hasUnknown,
+      place,
     });
   }
   return days;

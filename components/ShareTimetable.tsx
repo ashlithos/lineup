@@ -2,6 +2,7 @@ import type { Booking } from "@/lib/types";
 import { buildWeek, DAY_START, DAY_END, PLAN_END, dur, hhmm } from "@/lib/freetime";
 import { cityLabel, sunTimes } from "@/lib/sun";
 import { localDate } from "@/lib/localtime";
+import { forecastForPlaces, weatherLook } from "@/lib/weather";
 
 // The shared "when am I free" view. Read-only and server-rendered — no
 // controls, and deliberately no hotel names, prices or confirmation details.
@@ -24,9 +25,16 @@ const dayNum = (iso: string) =>
 
 const HOURS = Array.from({ length: Math.floor(SPAN / 120) + 1 }, (_, i) => DAY_START + i * 120);
 
-export function ShareTimetable({ bookings }: { bookings: Booking[] }) {
+export async function ShareTimetable({ bookings }: { bookings: Booking[] }) {
   const days = buildWeek(bookings, { meals: true });
   if (!days.length) return null;
+
+  // Forecasts reach ~16 days out. Days past that get no weather line at all.
+  const weather = await forecastForPlaces(
+    days.map((d) => d.endPlace ?? d.place),
+  );
+  const weatherOn = (d: (typeof days)[number]) =>
+    weather[d.endPlace ?? d.place ?? ""]?.get(d.date.slice(0, 10));
 
   const whereFor = (d: (typeof days)[number]) => {
     const from = cityLabel(d.place);
@@ -49,6 +57,20 @@ export function ShareTimetable({ bookings }: { bookings: Booking[] }) {
                   {weekday(d.date)} {dayNum(d.date)}
                 </span>
                 {where && <span className="text-[13px] text-ink-soft">{where}</span>}
+                {(() => {
+                  const w = weatherOn(d);
+                  if (!w) return null;
+                  const look = weatherLook(w.code);
+                  return (
+                    <span className="text-[13px] text-ink-soft">
+                      <span aria-hidden="true">{look.icon}</span>{" "}
+                      <span className="font-mono">{w.high}°/{w.low}°</span>
+                      <span className="sr-only">
+                        {look.label}, high {w.high} degrees, low {w.low}
+                      </span>
+                    </span>
+                  );
+                })()}
                 <span className="ml-auto text-[13px] font-medium text-ink">
                   {d.freeMinutes > 0 ? `${dur(d.freeMinutes)} free` : "fully booked"}
                 </span>

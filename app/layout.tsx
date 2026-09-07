@@ -15,6 +15,11 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
+  // Needed so share links emit absolute og:image URLs — iMessage and Slack
+  // ignore relative ones.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://uselineup.vercel.app",
+  ),
   title: "LineUp — keep your plans, never miss a cancel",
   description:
     "One place for every booking, so you never miss a free-cancellation deadline and never lose track of the fun.",

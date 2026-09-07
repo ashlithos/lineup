@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getSupabase, rowToBooking, TABLE, type BookingRow } from "@/lib/supabase";
 import { CATEGORY_META, isTransport, type Booking } from "@/lib/types";
@@ -48,6 +49,17 @@ async function getSharedTrip(
   }
   bookings.sort((a, b) => +new Date(a.eventAt) - +new Date(b.eventAt));
   return { name: seed.tripName || seed.title, bookings };
+}
+
+// The cities a trip actually visits, in order, for the link preview.
+function tripCities(bookings: Booking[]): string[] {
+  const out: string[] = [];
+  for (const b of [...bookings].sort((a, c) => a.eventAt.localeCompare(c.eventAt))) {
+    if (b.category !== "hotel") continue;
+    const city = (b.location ?? "").split(",")[0].trim();
+    if (city && out[out.length - 1] !== city) out.push(city);
+  }
+  return out;
 }
 
 const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
@@ -104,6 +116,54 @@ function totalNights(bookings: Booking[]): number {
     new Date(Math.min(...stamps)).toISOString(),
     new Date(Math.max(...stamps)).toISOString(),
   );
+}
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { view } = await searchParams;
+  const trip = await getSharedTrip(id);
+  if (!trip) {
+    return { title: "Trip plan" };
+  }
+  const timetable = view === "timetable";
+  const cities = tripCities(trip.bookings);
+  const nights = totalNights(trip.bookings);
+  const title = timetable
+    ? `${trip.name} — when ${SHARER_NAME} is free`
+    : `${SHARER_NAME} shared ${trip.name} with you`;
+  const description = [
+    rangeLabel(trip.bookings),
+    nights > 0 && !timetable ? `${nights} nights` : null,
+    cities.length ? cities.slice(0, 4).join(" · ") : null,
+    timetable ? "Open time each day" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const cover = trip.bookings.find((b) => b.imageUrl?.trim())?.imageUrl;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "LineUp",
+      ...(cover ? { images: [{ url: cover, alt: trip.name }] } : {}),
+    },
+    twitter: {
+      card: cover ? "summary_large_image" : "summary",
+      title,
+      description,
+      ...(cover ? { images: [cover] } : {}),
+    },
+  };
 }
 
 export default async function SharePage({

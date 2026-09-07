@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/types";
 import {
   buildWeek,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/freetime";
 import { localDate } from "@/lib/localtime";
 import { cityLabel, sunTimes } from "@/lib/sun";
+import { forecastForPlaces, weatherLook, type DayWeather } from "@/lib/weather";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
@@ -43,7 +44,21 @@ export function WeekGrid({
   onOpen: (b: Booking) => void;
 }) {
   const [meals, setMeals] = useState(true);
+  const [weather, setWeather] = useState<Record<string, Map<string, DayWeather>>>({});
   const days = buildWeek(bookings, { meals });
+
+  // Forecasts only reach ~16 days out; beyond that this simply stays empty.
+  const placeKey = days.map((d) => d.endPlace ?? d.place ?? "").join("|");
+  useEffect(() => {
+    let live = true;
+    forecastForPlaces(placeKey.split("|"))
+      .then((w) => live && setWeather(w))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [placeKey]);
+
   if (!days.length) return null;
 
   const anyUnknown = days.some((d) => d.hasUnknown);
@@ -95,6 +110,32 @@ export function WeekGrid({
                     {where}
                   </div>
                 )}
+                {(() => {
+                  const w = weather[d.endPlace ?? d.place ?? ""]?.get(
+                    d.date.slice(0, 10),
+                  );
+                  if (!w) return null; // no forecast this far out — show nothing
+                  const look = weatherLook(w.code);
+                  return (
+                    <div
+                      title={`${look.label} · high ${w.high}° low ${w.low}°${w.rainChance >= 30 ? ` · ${w.rainChance}% chance of rain` : ""}`}
+                      className="mt-0.5 flex items-center justify-center gap-1 text-[10px] text-ink-soft"
+                    >
+                      <span aria-hidden="true">{look.icon}</span>
+                      <span className="font-mono">
+                        {w.high}°/{w.low}°
+                      </span>
+                      {w.rainChance >= 30 && (
+                        <span className="font-mono text-accent">
+                          {w.rainChance}%
+                        </span>
+                      )}
+                      <span className="sr-only">
+                        {look.label}, high {w.high} degrees, low {w.low}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

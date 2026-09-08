@@ -95,11 +95,18 @@ function Row({
         : null);
 
   const showCancel = approaching && !!booking.cancelBy;
+  // Dashed and hollow means nobody has reserved this yet — same language the
+  // timetable uses, so the two tabs never disagree about what's booked.
+  const toBook = booking.status === "tobook";
 
   return (
     <button
       onClick={() => onOpen(booking)}
-      className="group flex w-full flex-col gap-1.5 rounded-xl border border-line bg-raised px-3.5 py-3 text-left transition-colors hover:border-line-strong"
+      className={`group flex w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left transition-colors ${
+        toBook
+          ? "border-dashed border-accent/60 bg-accent-soft/25 hover:border-accent"
+          : "border-line bg-raised hover:border-line-strong"
+      }`}
     >
       <div className="flex items-center gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-paper text-lg">
@@ -108,7 +115,12 @@ function Row({
         <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
           {primary}
         </span>
-        {price && (
+        {toBook && (
+          <span className="shrink-0 rounded-full border border-dashed border-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+            to book
+          </span>
+        )}
+        {price && !toBook && (
           <span className="shrink-0 font-mono text-[14px] font-medium text-ink">
             {price}
           </span>

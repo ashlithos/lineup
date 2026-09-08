@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/types";
 import { localDate, localMins } from "@/lib/localtime";
 import { hhmm } from "@/lib/freetime";
 
 // The other half of "researched but not booked": a checklist of what still has
 // to be reserved, grouped by day, so it can be handed to someone.
+
+const OPEN_KEY = "lineup.tobook.open";
 
 const dayLabel = (iso: string) =>
   localDate(iso).toLocaleDateString(undefined, {
@@ -24,6 +27,18 @@ export function ToBookList({
   onOpen: (b: Booking) => void;
   onBooked: (b: Booking) => void;
 }) {
+  // Expanded by default — this is work waiting to be done — but the choice
+  // sticks once made, since a long list is worth folding away between trips.
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    setOpen(window.localStorage.getItem(OPEN_KEY) !== "0");
+  }, []);
+  const toggle = () =>
+    setOpen((v) => {
+      window.localStorage.setItem(OPEN_KEY, v ? "0" : "1");
+      return !v;
+    });
+
   const items = bookings
     .filter((b) => b.status === "tobook")
     .sort((a, b) => a.eventAt.localeCompare(b.eventAt));
@@ -39,14 +54,33 @@ export function ToBookList({
 
   return (
     <section className="rounded-xl border border-dashed border-accent/50 bg-accent-soft/30 p-3.5">
-      <div className="mb-2.5 flex flex-wrap items-center gap-2">
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 text-left"
+      >
         <h3 className="text-[14px] font-semibold text-ink">Still to book</h3>
         <span className="rounded-full border border-dashed border-accent px-2 py-0.5 text-[11px] font-medium text-accent">
           {items.length} {items.length === 1 ? "item" : "items"}
         </span>
-      </div>
+        {!open && (
+          <span className="min-w-0 truncate text-[12px] text-ink-soft">
+            {[...byDay.keys()]
+              .map((d) => dayLabel(byDay.get(d)![0].eventAt).replace(/,.*/, ""))
+              .join(" · ")}
+          </span>
+        )}
+        <i
+          className={`ti ti-chevron-down ml-auto shrink-0 text-[18px] text-ink-faint transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden="true"
+        />
+      </button>
 
-      <div className="space-y-3">
+      {open && (
+      <>
+      <div className="mt-2.5 space-y-3">
         {[...byDay.entries()].map(([day, list]) => (
           <div key={day}>
             <p className="mb-1 text-[12px] font-medium text-ink-soft">
@@ -88,6 +122,8 @@ export function ToBookList({
       <p className="mt-2.5 text-[11px] text-ink-faint">
         Nothing here is reserved. Tick one once it&apos;s actually booked.
       </p>
+      </>
+      )}
     </section>
   );
 }

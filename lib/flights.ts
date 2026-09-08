@@ -26,14 +26,17 @@ const sameVenue = (a?: string, b?: string) => {
   return x === y || x.includes(y) || y.includes(x);
 };
 
-// Two ticket orders are the same outing when they're on the same day at the
-// same venue. Titles and vendors differ across resellers, so they can't be the
-// match key — but date + venue is specific enough to be safe.
+// Two ticket orders are the same outing when they start at the same moment in
+// the same place. Titles and vendors differ across resellers, so they can't be
+// the match key — but the START TIME can: two orders for one show share it
+// exactly, while two different attractions on the same day do not. Matching on
+// the day alone wrongly merged an afternoon boat trip with a later tour, both
+// filed under the same town.
 function sameEvent(a: Booking, b: Booking): boolean {
   return (
     a.category === "event" &&
     b.category === "event" &&
-    a.eventAt.slice(0, 10) === b.eventAt.slice(0, 10) &&
+    a.eventAt.slice(0, 16) === b.eventAt.slice(0, 16) &&
     sameVenue(a.location, b.location)
   );
 }
@@ -53,7 +56,7 @@ export function collapseFlights(items: Booking[]): (Booking | FlightGroup)[] {
       const hit = [...groups.entries()].find(
         ([, bs]) => bs[0].category === "event" && sameEvent(bs[0], b),
       );
-      key = hit ? hit[0] : `event|${b.eventAt.slice(0, 10)}|${venueKey(b.location)}`;
+      key = hit ? hit[0] : `event|${b.eventAt.slice(0, 16)}|${venueKey(b.location)}`;
     }
     if (!key) {
       order.push(b);

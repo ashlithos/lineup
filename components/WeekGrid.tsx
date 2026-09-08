@@ -14,6 +14,7 @@ import {
 import { localDate } from "@/lib/localtime";
 import { cityLabel, sunTimes } from "@/lib/sun";
 import { forecastForPlaces, weatherLook, type DayWeather } from "@/lib/weather";
+import { timetableRows, toCSV, toTSV } from "@/lib/exportTable";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
@@ -48,9 +49,10 @@ export function WeekGrid({
   bookings: Booking[];
   onOpen: (b: Booking) => void;
 }) {
-  const [meals, setMeals] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [weather, setWeather] = useState<Record<string, Map<string, DayWeather>>>({});
-  const days = buildWeek(bookings, { meals });
+  // Meal windows are always drawn now — the toggle made way for export.
+  const days = buildWeek(bookings, { meals: true });
 
   // Forecasts only reach ~16 days out; beyond that this simply stays empty.
   const placeKey = days.map((d) => d.endPlace ?? d.place ?? "").join("|");
@@ -66,6 +68,36 @@ export function WeekGrid({
 
   if (!days.length) return null;
 
+  const rows = timetableRows(days);
+  const fileName = `${bookings[0]?.tripName ?? "trip"} timetable`
+    .replace(/[^\w \-]/g, "")
+    .trim();
+
+  // Tab-separated is what a spreadsheet expects off the clipboard, so this
+  // pastes straight into Sheets or Excel as real columns.
+  const copyTable = async () => {
+    try {
+      await navigator.clipboard.writeText(toTSV(rows));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — the export button still works */
+    }
+  };
+
+  const exportSheet = () => {
+    // A BOM so Excel reads the accents in "Québec" correctly.
+    const blob = new Blob(["\uFEFF" + toCSV(rows)], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const anyUnknown = days.some((d) => d.hasUnknown);
 
   return (
@@ -74,15 +106,25 @@ export function WeekGrid({
         <p className="text-[13px] text-ink-soft">
           Open time each day, counted to {hhmm(PLAN_END)}
         </p>
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-ink-soft">
-          <input
-            type="checkbox"
-            checked={meals}
-            onChange={(e) => setMeals(e.target.checked)}
-            className="size-3.5 accent-[var(--color-accent)]"
-          />
-          Show typical meal times
-        </label>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={copyTable}
+            className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
+          >
+            <i
+              className={`ti text-[14px] ${copied ? "ti-check text-ok" : "ti-clipboard"}`}
+              aria-hidden="true"
+            />
+            {copied ? "Copied" : "Copy table"}
+          </button>
+          <button
+            onClick={exportSheet}
+            className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
+          >
+            <i className="ti ti-table-export text-[14px]" aria-hidden="true" />
+            Export to sheet
+          </button>
+        </div>
       </div>
 
       {/* The grid scrolls sideways on narrow screens rather than squashing. */}

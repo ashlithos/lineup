@@ -1,4 +1,5 @@
 import { isTransport, type Booking } from "./types";
+import { AIRPORTS, bufferMin, bufferReason, routeAirports } from "./airports";
 import { durationMin, localDayMs, localMins } from "./localtime";
 
 // Turns a trip into a day-by-day picture of committed vs open time, so you can
@@ -9,7 +10,14 @@ export const DAY_END = 23 * 60; // 23:00 — how far the grid draws
 export const PLAN_END = 22 * 60; // 22:00 — nothing gets planned after this
 const MIN_FREE = 45; // a shorter gap isn't really usable
 
-export type BlockKind = "travel" | "event" | "meal" | "unknown" | "hold";
+export type BlockKind =
+  | "travel"
+  | "event"
+  | "meal"
+  | "unknown"
+  | "hold"
+  | "transit" // getting to or from the airport
+  | "buffer"; // time spent at the airport before a flight
 
 export interface Block {
   key: string;
@@ -94,6 +102,8 @@ export function buildWeek(
   for (let d = first; d <= last; d += DAY) {
     const blocks: Block[] = [];
     let hasUnknown = false;
+    // Two tickets on one flight are one journey — airport time counts once.
+    const airportDone = new Set<string>();
 
     for (const b of live) {
       if (b.category === "hotel") continue; // a stay anchors the night, it doesn't fill the day
@@ -117,6 +127,56 @@ export function buildWeek(
               ? clamp(start + b.durationMin)
               : DAY_END;
           if (!known) hasUnknown = true;
+
+          // The hours a flight really costs: the ride out, the wait at the
+          // gate, and the ride into town at the far end.
+          const route = routeAirports(b.location);
+          // On the return leg of a round trip you set off from the far end.
+          const depAp = i === 0 ? route.from : route.to;
+          const arrAp = i === 0 ? route.to : route.from;
+          const journey = `${leg.dep.slice(0, 16)}|${depAp?.code ?? "?"}`;
+          const first = !airportDone.has(journey);
+          if (first) airportDone.add(journey);
+
+          if (depAp && first && b.status !== "tobook") {
+            const buf = bufferMin(depAp, arrAp);
+            const bufStart = start - buf;
+            const ride = bufStart - depAp.transitMin;
+            // An early departure pushes these before the grid opens. Clamp them
+            // rather than hiding them, and say the real time in the label.
+            const early = ride < DAY_START;
+            if (bufStart < DAY_END) {
+              blocks.push({
+                key: `${b.id}-${i}-buffer`,
+                kind: "buffer",
+                label: `At ${depAp.code}${early ? ` from ${hhmm(Math.max(bufStart, 0))}` : ""} · ${bufferReason(depAp, arrAp)}`,
+                start: clamp(bufStart),
+                end: start,
+              });
+              if (clamp(ride) < clamp(bufStart)) {
+                blocks.push({
+                  key: `${b.id}-${i}-toap`,
+                  kind: "transit",
+                  label: `To ${depAp.code}${early ? ` — leave ${hhmm(Math.max(ride, 0))}` : ""} · ${depAp.transitVia}`,
+                  start: clamp(ride),
+                  end: clamp(bufStart),
+                });
+              }
+            }
+          }
+          if (arrAp && hasArr && first && b.status !== "tobook") {
+            const landed = clamp(minsOf(leg.arr!));
+            if (landed < DAY_END) {
+              blocks.push({
+                key: `${b.id}-${i}-fromap`,
+                kind: "transit",
+                label: `${arrAp.code} to ${arrAp.city} · ${arrAp.transitVia}`,
+                start: landed,
+                end: clamp(landed + arrAp.transitMin),
+              });
+            }
+          }
+
           blocks.push({
             key: `${b.id}-${i}`,
             kind:

@@ -19,6 +19,7 @@ import { PlanCard } from "@/components/PlanCard";
 import { TripPlanCard } from "@/components/TripPlanCard";
 import { PlanDialog } from "@/components/PlanDialog";
 import { ShareModal } from "@/components/ShareModal";
+import { AssignDialog } from "@/components/AssignDialog";
 import { TypeFilter, type TypeFilterValue } from "@/components/TypeFilter";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ReviewSheet } from "@/components/ReviewSheet";
@@ -39,6 +40,8 @@ export default function Home() {
   const [weekFilter, setWeekFilter] = useState<number | null>(null); // Monday ms
   const [planCheckOpen, setPlanCheckOpen] = useState(false);
   const [shareTripObj, setShareTripObj] = useState<Trip | null>(null);
+  // The "still to book" items being handed to someone else.
+  const [assigning, setAssigning] = useState<Booking[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Booking | null>(null);
@@ -286,6 +289,25 @@ export default function Home() {
   // Ticking a "to book" item promotes it to a real booking. Everything it was
   // missing (price, confirmation, deadline) stays empty until an email fills it.
   const markBooked = (b: Booking) => update(b.id, { status: "upcoming" });
+
+  // Handing items over records who was asked and where, so the daily reminder
+  // can chase the same person if they're still not booked by their book-by date.
+  const markAssigned = (ids: string[], who: string, email: string) => {
+    const assignedAt = new Date().toISOString();
+    ids.forEach((id) =>
+      update(id, {
+        assignee: who || undefined,
+        assigneeEmail: email || undefined,
+        assignedAt,
+      }),
+    );
+    setFlash(
+      who
+        ? `Handed ${ids.length} to ${who}`
+        : `Handed ${ids.length} over`,
+    );
+    setTimeout(() => setFlash(null), 2400);
+  };
 
   const openEdit = (b: Booking) => {
     setEditing(b);
@@ -726,6 +748,7 @@ export default function Home() {
                                 bookings={trip.bookings}
                                 onOpen={openEdit}
                                 onBooked={markBooked}
+                                onAssign={setAssigning}
                               />
                               <TripAgenda
                                 bookings={trip.bookings}
@@ -823,6 +846,14 @@ export default function Home() {
         <ShareModal
           trip={shareTripObj}
           onClose={() => setShareTripObj(null)}
+        />
+      )}
+
+      {assigning && (
+        <AssignDialog
+          items={assigning}
+          onClose={() => setAssigning(null)}
+          onAssigned={markAssigned}
         />
       )}
 

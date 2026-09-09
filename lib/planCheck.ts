@@ -79,13 +79,24 @@ export function runRules(bookings: Booking[]): Finding[] {
     for (const n of stayNights(h)) nightCity.set(n, { city, b: h });
   }
 
-  // 1. An event somewhere you can't be — you're checked in elsewhere that night.
+  // Days you've booked a way to get somewhere are day trips, not mistakes.
+  const excursionDays = new Set(
+    bookings
+      .filter((b) => b.status !== "cancelled" && isTransport(b.category))
+      .map((b) => dayOf(b.eventAt)),
+  );
+
+  // 1. An event somewhere you can't be — you're checked in elsewhere that night
+  //    AND you have no transport booked that day. A dinner by the falls while
+  //    your bed is in Toronto is a planned excursion when there's a train for
+  //    it; it's only a conflict when there's no way to be in both places.
   for (const e of live) {
     if (e.category !== "event" && e.category !== "restaurant") continue;
     const where = nightCity.get(dayOf(e.eventAt));
     const evCity = cityOf(e);
     if (!where || !evCity) continue;
     if (overlaps(where.city, evCity)) continue;
+    if (excursionDays.has(dayOf(e.eventAt))) continue;
     found.push({
       id: `away:${e.id}`,
       severity: "conflict",

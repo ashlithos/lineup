@@ -10,6 +10,8 @@ import {
   type ChecklistItem,
 } from "@/lib/types";
 import { MonthPicker } from "@/components/MonthPicker";
+import { localDate, localDayMs } from "@/lib/localtime";
+import type { Trip } from "@/lib/trips";
 
 const CHECKLIST_SUGGESTIONS = ["Flights", "Hotel", "Activities", "Rental car"];
 
@@ -17,17 +19,44 @@ type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
 const CURRENCIES = ["USD", "CAD", "EUR", "GBP"];
 
+const DAY_MS = 86_400_000;
+
+/** Every calendar day the trip covers, as "YYYY-MM-DD". */
+function tripDayList(trip: Trip): string[] {
+  const stamps = trip.bookings
+    .flatMap((b) => [b.eventAt, b.checkOut])
+    .filter((d): d is string => !!d)
+    .map(localDayMs);
+  if (!stamps.length) return [];
+  const out: string[] = [];
+  for (let d = Math.min(...stamps); d <= Math.max(...stamps); d += DAY_MS) {
+    out.push(new Date(d).toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+const dayOption = (d: string) =>
+  localDate(`${d}T00:00`).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
 // A want-to-book item. Lighter than a real booking — no dates, no cancellation.
 // We reuse cancelUrl as "where you'll book it" and amount as a rough budget.
 export function PlanDialog({
   open,
   plan,
+  trips,
   onClose,
   onSave,
   onDelete,
 }: {
   open: boolean;
   plan: Booking | null;
+  /** Trips already on the calendar, so a plan can be pinned to a day of one. */
+  trips?: Trip[];
   onClose: () => void;
   onSave: (draft: Draft, id: string | null) => void;
   onDelete: (id: string) => void;
@@ -45,6 +74,11 @@ export function PlanDialog({
   const [photoInput, setPhotoInput] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [companions, setCompanions] = useState<string[]>([]);
+  // Pinning to a trip turns a someday-wish into a dated thing that still has
+  // to be booked — brunch on the Saturday of a trip you've already booked.
+  const [tripKey, setTripKey] = useState("");
+  const [day, setDay] = useState("");
+  const [time, setTime] = useState("11:00");
 
   // "9999-01-01…" is the sentinel for undated plan items.
   const isUndated = (iso: string) => iso.startsWith("9999");
@@ -63,7 +97,11 @@ export function PlanDialog({
     setCompanions(plan?.companions ?? []);
     const iso = plan?.eventAt ?? "";
     setRoughMonth(!iso || isUndated(iso) ? "" : iso.slice(0, 7));
-  }, [open, plan]);
+    const onTrip = trips?.find((t) => t.label === plan?.tripName);
+    setTripKey(onTrip?.key ?? "");
+    setDay(onTrip && iso ? iso.slice(0, 10) : "");
+    setTime(onTrip && iso ? iso.slice(11, 16) : "11:00");
+  }, [open, plan, trips]);
 
   const addItem = (raw: string) => {
     const label = raw.trim();
@@ -114,7 +152,13 @@ export function PlanDialog({
       return rest.includes(v) ? rest.filter((x) => x !== v) : [...rest, v];
     });
 
-  const canSave = title.trim() !== "";
+  // A trip can't live inside a trip, and "Other" groups aren't real trips.
+  const tripOptions = (trips ?? []).filter((t) => !t.isOther);
+  const trip = tripOptions.find((t) => t.key === tripKey);
+  const days = trip ? tripDayList(trip) : [];
+  const onTrip = !!trip;
+
+  const canSave = title.trim() !== "" && (!onTrip || !!day);
 
   const handleSave = () => {
     if (!canSave) return;
@@ -131,9 +175,12 @@ export function PlanDialog({
         checklist:
           category === "trip" && checklist.length ? checklist : undefined,
         companions: companions.length ? companions : undefined,
-        eventAt: roughMonth
-          ? `${roughMonth}-01T00:00:00.000Z`
-          : "9999-01-01T00:00:00.000Z",
+        tripName: onTrip ? trip!.label : undefined,
+        eventAt: onTrip
+          ? `${day}T${time}:00`
+          : roughMonth
+            ? `${roughMonth}-01T00:00:00.000Z`
+            : "9999-01-01T00:00:00.000Z",
       },
       plan?.id ?? null,
     );
@@ -177,10 +224,52 @@ export function PlanDialog({
             />
           </div>
 
+          {tripOptions.length > 0 && (
+            <div>
+              <label className={label}>Part of a trip?</label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTripKey("")}
+                  className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                    !onTrip
+                      ? "border-ink bg-ink text-paper"
+                      : "border-line bg-paper text-ink-soft hover:border-line-strong"
+                  }`}
+                >
+                  On its own
+                </button>
+                {tripOptions.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => {
+                      setTripKey(t.key);
+                      if (category === "trip") setCategory("other");
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                      tripKey === t.key
+                        ? "border-ink bg-ink text-paper"
+                        : "border-line bg-paper text-ink-soft hover:border-line-strong"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {onTrip && (
+                <p className="mt-1.5 text-[12px] text-ink-faint">
+                  Lands on that day&apos;s timetable under &ldquo;Still to
+                  book&rdquo; — not booked, but real enough to plan around.
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className={label}>Type</label>
             <div className="flex flex-wrap gap-1.5">
-              {PLAN_CATEGORY_ORDER.map((c) => (
+              {PLAN_CATEGORY_ORDER.filter((c) => !onTrip || c !== "trip").map((c) => (
                 <button
                   key={c}
                   onClick={() => setCategory(c)}
@@ -196,7 +285,7 @@ export function PlanDialog({
             </div>
           </div>
 
-          {category === "trip" && (
+          {category === "trip" && !onTrip && (
             <div>
               <label className={label}>Photo (optional)</label>
               {imageUrl ? (
@@ -258,7 +347,7 @@ export function PlanDialog({
             </div>
           )}
 
-          {category === "trip" && (
+          {category === "trip" && !onTrip && (
             <div>
               <label className={label}>What needs booking?</label>
               {checklist.length > 0 && (
@@ -366,12 +455,41 @@ export function PlanDialog({
             </div>
           </div>
 
-          <div>
-            <label className={label}>Rough timing (optional)</label>
-            <MonthPicker value={roughMonth} onChange={setRoughMonth} />
-          </div>
+          {onTrip ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>Which day?</label>
+                <select
+                  className={field}
+                  value={day}
+                  onChange={(e) => setDay(e.target.value)}
+                >
+                  <option value="">Pick a day</option>
+                  {days.map((d) => (
+                    <option key={d} value={d}>
+                      {dayOption(d)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={label}>What time?</label>
+                <input
+                  type="time"
+                  className={field}
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className={label}>Rough timing (optional)</label>
+              <MonthPicker value={roughMonth} onChange={setRoughMonth} />
+            </div>
+          )}
 
-          <div>
+          <div className={onTrip ? "hidden" : undefined}>
             <label className={label}>Who&apos;s coming? (optional)</label>
             <div className="flex flex-wrap gap-1.5">
               {COMPANION_OPTIONS.map((o) => {

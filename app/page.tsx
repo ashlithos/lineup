@@ -174,6 +174,9 @@ export default function Home() {
   }, [items, weekFilter]);
   // Upcoming tab groups bookings into auto-detected trips.
   const trips = useMemo(() => buildTrips(weekItems), [weekItems]);
+  // Every real trip, whichever rail is showing — so a plan can be pinned to one
+  // from the Plan tab, where `trips` above is narrowed to that tab's items.
+  const allTrips = useMemo(() => buildTrips(upcoming), [upcoming]);
   const toggleTrip = (key: string) =>
     setCollapsedTrips((prev) => {
       const next = new Set(prev);
@@ -346,9 +349,17 @@ export default function Home() {
     setPlanDialogOpen(true);
   };
   const handleSavePlan = (draft: Draft, id: string | null) => {
-    if (id) update(id, draft);
-    else add({ ...draft, status: "plan" });
+    // Pinned to a day of a real trip, it stops being a someday-wish: it's a
+    // dated thing that still needs booking, so it belongs on the trip itself.
+    const pinned = !!draft.tripName && !draft.eventAt.startsWith("9999");
+    if (id) update(id, pinned ? { ...draft, status: "tobook" } : draft);
+    else add({ ...draft, status: pinned ? "tobook" : "plan" });
     setPlanDialogOpen(false);
+    if (pinned) {
+      setRail("forward");
+      setFlash(`Added to ${draft.tripName} — it's in "Still to book".`);
+      setTimeout(() => setFlash(null), 3000);
+    }
   };
   const handleDeletePlan = (id: string) => {
     remove(id);
@@ -838,6 +849,7 @@ export default function Home() {
       />
 
       <PlanDialog
+        trips={allTrips}
         open={planDialogOpen}
         plan={editingPlan}
         onClose={() => setPlanDialogOpen(false)}

@@ -1,36 +1,9 @@
 import { NextResponse } from "next/server";
-import { getConfig, setConfig } from "@/lib/config";
+import { googleAccessToken } from "@/lib/google";
 import { extractCandidatesFromText } from "@/lib/extractServer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-// "not-connected" = never linked; "reconnect" = token exists but expired/revoked
-// (Google expires refresh tokens weekly for unverified/"Testing" OAuth apps).
-async function getAccessToken(): Promise<
-  { token: string } | { error: "not-connected" | "reconnect" }
-> {
-  const refresh = await getConfig("gmail_refresh_token");
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return { error: "not-connected" };
-  if (!refresh) return { error: "not-connected" };
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refresh,
-      grant_type: "refresh_token",
-    }),
-  });
-  const t = (await res.json()) as { access_token?: string };
-  if (t.access_token) return { token: t.access_token };
-  // Stored token is dead — drop it so status flips to disconnected and the UI re-prompts.
-  await setConfig("gmail_refresh_token", "");
-  return { error: "reconnect" };
-}
 
 type GmailPart = {
   mimeType?: string;
@@ -58,7 +31,7 @@ const key = (title: string, eventAt: string) =>
 
 export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
-  const auth0 = await getAccessToken();
+  const auth0 = await googleAccessToken();
   if ("error" in auth0) {
     return NextResponse.json({ error: auth0.error }, { status: 400 });
   }

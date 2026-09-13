@@ -42,6 +42,21 @@ const LEAD: Record<Category, LeadTime> = {
 
 export const leadTime = (c: Category): LeadTime => LEAD[c] ?? LEAD.other;
 
+/**
+ * Things that need a reservation to exist at all. A walk along a street, a
+ * sunset from a hill, an afternoon in a neighbourhood — those are plans you
+ * simply turn up for, and telling someone to "book" one is noise.
+ */
+const NEEDS_BOOKING = new Set<Category>([
+  "restaurant",
+  "event",
+  "hotel",
+  "flight",
+  "train",
+]);
+
+export const needsBooking = (b: Booking) => NEEDS_BOOKING.has(b.category);
+
 /** The day this should be reserved by: the event date, minus its lead time. */
 export function bookByMs(b: Booking): number {
   return localDayMs(b.eventAt) - leadTime(b.category).days * DAY;
@@ -82,25 +97,30 @@ export interface BookByChip {
   tone: "calm" | "soon" | "now";
 }
 
-export function bookByChip(b: Booking, now: number = Date.now()): BookByChip {
+export function bookByChip(
+  b: Booking,
+  now: number = Date.now(),
+): BookByChip | null {
+  if (!needsBooking(b)) return null; // nothing to reserve — nothing to say
   const todayMs = startOfToday(now);
   const toEvent = Math.round((localDayMs(b.eventAt) - todayMs) / DAY);
   const toBookBy = Math.round((bookByMs(b) - todayMs) / DAY);
 
   // Close enough that it's today's problem, whatever the ideal window was.
   if (toEvent <= 2) return { text: "Book now", tone: "now" };
-  if (toBookBy < 0) return { text: "Book soon", tone: "soon" };
-  return {
-    text: `Book by ${fmtDay(bookByMs(b))}`,
-    tone: toBookBy <= 7 ? "soon" : "calm",
-  };
+  // Only once it's genuinely pressing. A table forty days out is a table you
+  // haven't booked yet, not a problem, and a badge on it teaches you to ignore
+  // badges.
+  if (toBookBy < 0 || toEvent <= 7) return { text: "Book soon", tone: "soon" };
+  return null;
 }
 
 /**
  * The fuller sentence, for the message sent to whoever is booking: they don't
  * know the thing, so the notice it wants is worth spelling out.
  */
-export function bookByLine(b: Booking, now: number = Date.now()): string {
+export function bookByLine(b: Booking, now: number = Date.now()): string | null {
+  if (!needsBooking(b)) return null;
   const { days } = leadTime(b.category);
   const u = bookUrgency(b, now);
   if (u === "overdue") return `Book as soon as you can — this usually wants ${days} days' notice`;
@@ -205,7 +225,8 @@ export function handoffText(
   for (const b of sorted) {
     lines.push(`• ${b.title}`);
     lines.push(`  When: ${whenLabel(b)}${b.location ? ` · ${b.location}` : ""}`);
-    lines.push(`  ${bookByLine(b, now)} (${leadTime(b.category).note})`);
+    const line = bookByLine(b, now);
+    if (line) lines.push(`  ${line} (${leadTime(b.category).note})`);
     for (const l of bookLinks(b)) lines.push(`  ${l.label}: ${l.url}`);
     if (b.notes) lines.push(`  Note: ${b.notes}`);
     lines.push("");

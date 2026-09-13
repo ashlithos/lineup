@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabase, rowToBooking, TABLE, type BookingRow } from "@/lib/supabase";
 import { sendReminderEmail, sendHandoffEmail } from "@/lib/email";
-import { bookUrgency } from "@/lib/handoff";
+import { bookUrgency, needsBooking } from "@/lib/handoff";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Runs daily (see vercel.json). Two passes:
@@ -118,7 +118,9 @@ async function nudgeAssignees(
       const since = (Date.parse(today) - Date.parse(r.last_reminded_on)) / 86_400_000;
       if (since < NUDGE_GAP_DAYS) return false;
     }
-    const u = bookUrgency(rowToBooking(r), now);
+    const b = rowToBooking(r);
+    if (!needsBooking(b)) return false; // nothing to reserve, nothing to chase
+    const u = bookUrgency(b, now);
     return u === "overdue" || u === "now";
   });
   if (rows.length === 0) return { nudged: 0 };

@@ -126,13 +126,20 @@ export function ToBookList({
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-ink-faint">
                       <span className="font-mono">{hhmm(localMins(b.eventAt))}</span>
                       {b.location && <span className="truncate">{b.location}</span>}
-                      <span
-                        className={`rounded-full border px-2 py-0.5 font-medium ${
-                          BOOK_BY_STYLE[bookByChip(b).tone]
-                        }`}
-                      >
-                        {bookByChip(b).text}
-                      </span>
+                      {(() => {
+                        // Only the ones that genuinely need reserving, and
+                        // only once it's pressing. Everything else stays quiet.
+                        const chip = bookByChip(b);
+                        return chip ? (
+                          <span
+                            className={`rounded-full border px-2 py-0.5 font-medium ${
+                              BOOK_BY_STYLE[chip.tone]
+                            }`}
+                          >
+                            {chip.text}
+                          </span>
+                        ) : null;
+                      })()}
                       {b.assignee && (
                         <span className="flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 font-medium text-ink-soft">
                           <i className="ti ti-user text-[12px]" aria-hidden="true" />

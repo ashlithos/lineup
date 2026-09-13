@@ -53,6 +53,7 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
+  const [flashUndo, setFlashUndo] = useState<(() => void) | null>(null);
   const [gmail, setGmail] = useState<{
     configured: boolean;
     connected: boolean;
@@ -304,6 +305,26 @@ export default function Home() {
   // missing (price, confirmation, deadline) stays empty until an email fills it.
   const markBooked = (b: Booking) => update(b.id, { status: "upcoming" });
 
+  // Dropping a plan you've decided against. Reversible for as long as the
+  // message is on screen, because the tap that does it is a small one.
+  const dismissToBook = (b: Booking) => {
+    remove(b.id);
+    const { id, createdAt, status, ...draft } = b;
+    void id;
+    void createdAt;
+    void status;
+    setFlash(`Dismissed ${b.title}`);
+    setFlashUndo(() => () => {
+      void add({ ...draft, status: "tobook" });
+      setFlash(null);
+      setFlashUndo(null);
+    });
+    setTimeout(() => {
+      setFlash(null);
+      setFlashUndo(null);
+    }, 8000);
+  };
+
   // Handing items over records who was asked and where, so the daily reminder
   // can chase the same person if they're still not booked by their book-by date.
   const markAssigned = (ids: string[], who: string, email: string) => {
@@ -432,8 +453,16 @@ export default function Home() {
       </header>
 
       {flash && (
-        <div className="mt-5 rounded-xl border border-ok/30 bg-ok-soft px-3.5 py-2.5 text-[13px] text-ok">
-          {flash}
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-soft px-3.5 py-2.5 text-[13px] text-ok">
+          <span className="min-w-0 flex-1">{flash}</span>
+          {flashUndo && (
+            <button
+              onClick={flashUndo}
+              className="shrink-0 font-medium underline underline-offset-2"
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
 
@@ -790,6 +819,7 @@ export default function Home() {
                                 onOpen={openEdit}
                                 onBooked={markBooked}
                                 onAssign={setAssigning}
+                                onDismiss={dismissToBook}
                               />
                               <TripAgenda
                                 bookings={trip.bookings}

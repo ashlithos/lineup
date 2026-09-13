@@ -49,13 +49,13 @@ export function bookByMs(b: Booking): number {
 
 export type BookUrgency = "overdue" | "now" | "soon" | "later";
 
+function startOfToday(now: number): number {
+  const d = new Date(now);
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 export function bookUrgency(b: Booking, now: number = Date.now()): BookUrgency {
-  const today = new Date(now);
-  const todayMs = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
+  const todayMs = startOfToday(now);
   const daysLeft = Math.round((bookByMs(b) - todayMs) / DAY);
   if (daysLeft < 0) return "overdue";
   if (daysLeft === 0) return "now";
@@ -71,11 +71,39 @@ const fmtDay = (ms: number) =>
     day: "numeric",
   });
 
-/** "Book by Fri, Oct 10 — 30 days ahead", or the overdue version. */
-export function bookByLabel(b: Booking, now: number = Date.now()): string {
+/**
+ * The chip on the list. It answers "when do I have to act?" in as few words as
+ * possible — never how much notice the thing ideally wanted, because a lead
+ * time you've already missed is a scolding, not information, and a list where
+ * every line is red says nothing at all.
+ */
+export interface BookByChip {
+  text: string;
+  tone: "calm" | "soon" | "now";
+}
+
+export function bookByChip(b: Booking, now: number = Date.now()): BookByChip {
+  const todayMs = startOfToday(now);
+  const toEvent = Math.round((localDayMs(b.eventAt) - todayMs) / DAY);
+  const toBookBy = Math.round((bookByMs(b) - todayMs) / DAY);
+
+  // Close enough that it's today's problem, whatever the ideal window was.
+  if (toEvent <= 2) return { text: "Book now", tone: "now" };
+  if (toBookBy < 0) return { text: "Book soon", tone: "soon" };
+  return {
+    text: `Book by ${fmtDay(bookByMs(b))}`,
+    tone: toBookBy <= 7 ? "soon" : "calm",
+  };
+}
+
+/**
+ * The fuller sentence, for the message sent to whoever is booking: they don't
+ * know the thing, so the notice it wants is worth spelling out.
+ */
+export function bookByLine(b: Booking, now: number = Date.now()): string {
   const { days } = leadTime(b.category);
   const u = bookUrgency(b, now);
-  if (u === "overdue") return `Book now — this wanted ${days} days' notice`;
+  if (u === "overdue") return `Book as soon as you can — this usually wants ${days} days' notice`;
   if (u === "now") return `Book today — ${days} days ahead of the date`;
   return `Book by ${fmtDay(bookByMs(b))} — ${days} days ahead`;
 }
@@ -177,7 +205,7 @@ export function handoffText(
   for (const b of sorted) {
     lines.push(`• ${b.title}`);
     lines.push(`  When: ${whenLabel(b)}${b.location ? ` · ${b.location}` : ""}`);
-    lines.push(`  ${bookByLabel(b, now)} (${leadTime(b.category).note})`);
+    lines.push(`  ${bookByLine(b, now)} (${leadTime(b.category).note})`);
     for (const l of bookLinks(b)) lines.push(`  ${l.label}: ${l.url}`);
     if (b.notes) lines.push(`  Note: ${b.notes}`);
     lines.push("");

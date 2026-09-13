@@ -2,13 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Booking } from "@/lib/types";
-import {
-  bookByLabel,
-  bookUrgency,
-  handoffText,
-  whenLabel,
-  type BookUrgency,
-} from "@/lib/handoff";
+import { bookByChip, handoffText, whenLabel } from "@/lib/handoff";
 
 // Hand the "still to book" list to whoever is actually going to book it.
 // Email if it's configured; otherwise the same message, copied or shared —
@@ -18,11 +12,10 @@ const WHO_KEY = "lineup.assign.who";
 const WHO_EMAIL_KEY = "lineup.assign.whoEmail";
 const MY_EMAIL_KEY = "lineup.assign.myEmail";
 
-const URGENCY_STYLE: Record<BookUrgency, string> = {
-  overdue: "border-urgent/40 bg-urgent-soft text-urgent",
+const URGENCY_STYLE: Record<string, string> = {
   now: "border-urgent/40 bg-urgent-soft text-urgent",
   soon: "border-soon/40 bg-soon-soft text-soon",
-  later: "border-line bg-paper text-ink-soft",
+  calm: "border-line bg-paper text-ink-soft",
 };
 
 export function AssignDialog({
@@ -225,10 +218,10 @@ export function AssignDialog({
                           </span>
                           <span
                             className={`mt-1.5 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                              URGENCY_STYLE[bookUrgency(b)]
+                              URGENCY_STYLE[bookByChip(b).tone]
                             }`}
                           >
-                            {bookByLabel(b)}
+                            {bookByChip(b).text}
                           </span>
                         </span>
                       </label>

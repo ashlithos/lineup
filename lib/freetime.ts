@@ -152,6 +152,7 @@ export function buildWeek(
                 label: `At ${depAp.code}${early ? ` from ${hhmm(Math.max(bufStart, 0))}` : ""} · ${bufferReason(depAp, arrAp)}`,
                 start: clamp(bufStart),
                 end: start,
+                booking: b,
               });
               if (clamp(ride) < clamp(bufStart)) {
                 blocks.push({
@@ -160,6 +161,7 @@ export function buildWeek(
                   label: `To ${depAp.code}${early ? ` — leave ${hhmm(Math.max(ride, 0))}` : ""} · ${depAp.transitVia}`,
                   start: clamp(ride),
                   end: clamp(bufStart),
+                  booking: b,
                 });
               }
             }

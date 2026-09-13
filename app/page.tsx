@@ -732,7 +732,16 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-8">
+                      // The timetable is a grid of seven days — it wants every
+                      // pixel of width there is, so the trip photo steps aside
+                      // and comes back with the itinerary.
+                      <div
+                        className={
+                          freeTimeTrips.has(trip.key)
+                            ? ""
+                            : "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-8"
+                        }
+                      >
                         <div className="min-w-0">
                           {/* Two lenses on the same trip: what's booked, and what's open. */}
                           <div
@@ -790,12 +799,14 @@ export default function Home() {
                             </div>
                           )}
                         </div>
-                        <div className="hidden lg:block">
-                          <TripSidebar
-                            trip={trip}
-                            onSetImage={(url) => setTripImage(trip, url)}
-                          />
-                        </div>
+                        {!freeTimeTrips.has(trip.key) && (
+                          <div className="hidden lg:block">
+                            <TripSidebar
+                              trip={trip}
+                              onSetImage={(url) => setTripImage(trip, url)}
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                 </section>

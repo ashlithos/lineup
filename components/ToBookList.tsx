@@ -4,19 +4,19 @@ import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/types";
 import { localDate, localMins } from "@/lib/localtime";
 import { hhmm } from "@/lib/freetime";
-import { bookByLabel, bookUrgency } from "@/lib/handoff";
+import { bookByChip } from "@/lib/handoff";
 
 // The other half of "researched but not booked": a checklist of what still has
 // to be reserved, grouped by day, so it can be handed to someone.
 
 const OPEN_KEY = "lineup.tobook.open";
 
-// How loudly the book-by date reads. Late is the only state worth colouring red.
+// How loudly the book-by date reads. Red is reserved for the last two days —
+// a list where every line shouts is a list nobody reads.
 const BOOK_BY_STYLE: Record<string, string> = {
-  overdue: "border-urgent/40 bg-urgent-soft text-urgent",
   now: "border-urgent/40 bg-urgent-soft text-urgent",
   soon: "border-soon/40 bg-soon-soft text-soon",
-  later: "border-line bg-paper text-ink-faint",
+  calm: "border-line bg-paper text-ink-faint",
 };
 
 const dayLabel = (iso: string) =>
@@ -128,10 +128,10 @@ export function ToBookList({
                       {b.location && <span className="truncate">{b.location}</span>}
                       <span
                         className={`rounded-full border px-2 py-0.5 font-medium ${
-                          BOOK_BY_STYLE[bookUrgency(b)]
+                          BOOK_BY_STYLE[bookByChip(b).tone]
                         }`}
                       >
-                        {bookByLabel(b)}
+                        {bookByChip(b).text}
                       </span>
                       {b.assignee && (
                         <span className="flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 font-medium text-ink-soft">

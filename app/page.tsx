@@ -78,7 +78,9 @@ export default function Home() {
     const p = new URLSearchParams(window.location.search);
     const g = p.get("gmail");
     if (g === "connected") {
-      setFlash("Gmail connected — hit Scan inbox to pull new bookings.");
+      setFlash(
+        "Google connected — Scan my email pulls new bookings, and the timetable can export to Sheets.",
+      );
       setTimeout(() => setFlash(null), 4000);
       window.history.replaceState({}, "", "/");
     } else if (g === "error") {
@@ -309,6 +311,10 @@ export default function Home() {
     setTimeout(() => setFlash(null), 2400);
   };
 
+  const connectGoogle = () => {
+    window.location.href = "/api/gmail/connect";
+  };
+
   const openEdit = (b: Booking) => {
     setEditing(b);
     setAddPrefill(null);
@@ -382,6 +388,8 @@ export default function Home() {
                   onScan={handleScan}
                   onPaste={openMenuPaste}
                   onManual={openMenuManual}
+                  onConnectGoogle={gmail?.configured ? connectGoogle : undefined}
+                  googleConnected={gmail?.connected}
                 />
               </div>
             )}
@@ -794,6 +802,8 @@ export default function Home() {
               onScan={handleScan}
               onPaste={openMenuPaste}
               onManual={openMenuManual}
+              onConnectGoogle={gmail?.configured ? connectGoogle : undefined}
+              googleConnected={gmail?.connected}
             />
           </div>
         )}

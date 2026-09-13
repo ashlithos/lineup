@@ -6,10 +6,15 @@ export function AddMenu({
   onScan,
   onPaste,
   onManual,
+  onConnectGoogle,
+  googleConnected,
 }: {
   onScan: () => void;
   onPaste: () => void;
   onManual: () => void;
+  /** Absent when this deployment has no Google credentials to connect with. */
+  onConnectGoogle?: () => void;
+  googleConnected?: boolean;
 }) {
   return (
     <div className="w-60 overflow-hidden rounded-2xl bg-raised shadow-xl shadow-ink/10">
@@ -43,6 +48,26 @@ export function AddMenu({
           <span className="block text-[12px] text-ink-soft">Type it in yourself</span>
         </span>
       </button>
+      {onConnectGoogle && (
+        // Re-consent needs a door of its own: a connection made for email only
+        // still counts as "connected", so nothing else here would offer it.
+        <button
+          onClick={onConnectGoogle}
+          className="flex w-full items-start gap-3 border-t border-line px-4 py-3 text-left hover:bg-paper"
+        >
+          <i className="ti ti-brand-google mt-0.5 text-[18px] text-ink-soft" aria-hidden="true" />
+          <span>
+            <span className="block text-[14px] font-medium text-ink">
+              {googleConnected ? "Reconnect Google" : "Connect Google"}
+            </span>
+            <span className="block text-[12px] text-ink-soft">
+              {googleConnected
+                ? "Refresh permissions — needed for Sheets"
+                : "For inbox scans and sheet exports"}
+            </span>
+          </span>
+        </button>
+      )}
     </div>
   );
 }

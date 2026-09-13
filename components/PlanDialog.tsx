@@ -17,8 +17,6 @@ const CHECKLIST_SUGGESTIONS = ["Flights", "Hotel", "Activities", "Rental car"];
 
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
-const CURRENCIES = ["USD", "CAD", "EUR", "GBP"];
-
 const DAY_MS = 86_400_000;
 
 /** Every calendar day the trip covers, as "YYYY-MM-DD". */
@@ -44,7 +42,7 @@ const dayOption = (d: string) =>
   });
 
 // A want-to-book item. Lighter than a real booking — no dates, no cancellation.
-// We reuse cancelUrl as "where you'll book it" and amount as a rough budget.
+// We reuse cancelUrl as "where you'll book it".
 export function PlanDialog({
   open,
   plan,
@@ -64,8 +62,6 @@ export function PlanDialog({
   const editing = !!plan;
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<Category>("trip");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
   const [notes, setNotes] = useState("");
   const [roughMonth, setRoughMonth] = useState(""); // "YYYY-MM" or ""
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -87,8 +83,6 @@ export function PlanDialog({
     if (!open) return;
     setTitle(plan?.title ?? "");
     setCategory(plan?.category ?? "trip");
-    setAmount(plan?.amount != null ? String(plan.amount) : "");
-    setCurrency(plan?.currency ?? "USD");
     setNotes(plan?.notes ?? "");
     setChecklist(plan?.checklist ?? []);
     setNewItem("");
@@ -167,8 +161,10 @@ export function PlanDialog({
         title: title.trim(),
         category,
         cancelUrl: plan?.cancelUrl,
-        amount: amount.trim() ? Number(amount) : undefined,
-        currency,
+        // A budget is no longer asked for here, but one already written down
+        // shouldn't be thrown away by an edit.
+        amount: plan?.amount,
+        currency: plan?.currency ?? "USD",
         refundable: false,
         notes: notes.trim() || undefined,
         imageUrl: category === "trip" ? imageUrl : undefined,
@@ -432,28 +428,6 @@ export function PlanDialog({
               )}
             </div>
           )}
-
-          <div>
-            <label className={label}>Rough budget (optional)</label>
-            <div className="flex gap-1.5">
-              <input
-                inputMode="decimal"
-                className={field}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="400"
-              />
-              <select
-                className="rounded-lg border border-line bg-paper px-2 text-base text-ink outline-none focus:border-accent"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          </div>
 
           {onTrip ? (
             <div className="grid grid-cols-2 gap-3">

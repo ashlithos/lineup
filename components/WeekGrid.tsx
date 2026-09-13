@@ -19,6 +19,8 @@ import { buildSheetGrid, gridCSV, gridTSV } from "@/lib/sheetGrid";
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
 
+// Every tone carries its text at full ink strength: this grid was grey-on-grey
+// at 9.5px, which is a picture of a timetable rather than a timetable.
 const TONE: Record<Block["kind"], string> = {
   travel: "bg-line-strong text-ink",
   event: "bg-accent text-white",
@@ -27,8 +29,8 @@ const TONE: Record<Block["kind"], string> = {
   // Researched but not reserved: never a solid fill, so it can't be mistaken
   // for something someone is holding for you.
   hold: "border border-dashed border-accent text-accent bg-accent-soft/40",
-  transit: "bg-line text-ink-soft",
-  buffer: "bg-line/60 text-ink-soft border border-line-strong",
+  transit: "bg-line text-ink border border-line-strong",
+  buffer: "bg-line/70 text-ink border border-line-strong",
 };
 
 const weekday = (iso: string) =>
@@ -250,7 +252,7 @@ export function WeekGrid({
           })}
 
           {/* hour gutter */}
-          <div className="relative h-[320px]">
+          <div className="relative h-[340px] md:h-[440px] xl:h-[500px]">
             {HOURS.map((h) => (
               <span
                 key={h}
@@ -266,7 +268,7 @@ export function WeekGrid({
           {days.map((d) => (
             <div
               key={d.key}
-              className="relative h-[320px] overflow-hidden rounded-lg border border-line bg-raised"
+              className="relative h-[340px] overflow-hidden rounded-lg border border-line bg-raised md:h-[440px] xl:h-[500px]"
             >
               {/* Daylight: the hours before sunrise and after sunset are shaded,
                   so the usable part of the day reads at a glance. Computed for
@@ -328,36 +330,57 @@ export function WeekGrid({
 
               {d.blocks.map((b) => {
                 const top = pct(b.start);
-                const height = Math.max(pct(b.end) - top, 4);
-                const tall = height > 11;
-                const inner = (
+                const real = pct(b.end) - top;
+                // A 15-minute ride is 1.5% of the day. Floor it so it stays
+                // tappable, but keep the floor low enough that it can't swallow
+                // the block beneath it.
+                const height = Math.max(real, 3);
+                const tall = height > 12;
+                // Too short to hold a word: draw the bar, and let the tooltip,
+                // the screen reader and a tap carry the meaning.
+                const roomy = height >= 5;
+                const when = `${hhmm(b.start)}${
+                  b.kind === "unknown" ? " · end unknown" : `–${hhmm(b.end)}`
+                }`;
+                const inner = roomy ? (
                   <>
                     <span className="block truncate font-medium leading-tight">
                       {b.label}
                     </span>
                     {tall && (
-                      <span className="block truncate opacity-85">
-                        {hhmm(b.start)}
-                        {b.kind !== "unknown" && `–${hhmm(b.end)}`}
-                        {b.kind === "unknown" && " · end unknown"}
+                      <span className="block truncate leading-tight opacity-90">
+                        {when}
                       </span>
                     )}
                   </>
-                );
-                const cls = `absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[9.5px] ${TONE[b.kind]}`;
-                const style = { top: `${top}%`, height: `${height}%` };
+                ) : null;
+                const cls = `absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] ${TONE[b.kind]}`;
+                // Taller blocks sit under shorter ones, so a sliver is never
+                // buried by the block it abuts.
+                const style = {
+                  top: `${top}%`,
+                  height: `${height}%`,
+                  zIndex: Math.max(1, Math.round(40 - real)),
+                };
                 return b.booking ? (
                   <button
                     key={b.key}
                     onClick={() => onOpen(b.booking!)}
-                    title={`${b.label} · ${hhmm(b.start)}–${hhmm(b.end)}`}
-                    className={`${cls} transition-opacity hover:opacity-85`}
+                    title={`${b.label} · ${when}`}
+                    aria-label={`${b.label}, ${when}`}
+                    className={`${cls} transition-opacity hover:opacity-85 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                     style={style}
                   >
                     {inner}
                   </button>
                 ) : (
-                  <div key={b.key} className={cls} style={style} aria-hidden="true">
+                  <div
+                    key={b.key}
+                    className={cls}
+                    style={style}
+                    title={`${b.label} · ${when}`}
+                    aria-label={`${b.label}, ${when}`}
+                  >
                     {inner}
                   </div>
                 );
@@ -370,7 +393,7 @@ export function WeekGrid({
                 return (
                   <span
                     key={f.key}
-                    className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[9.5px] font-semibold text-ink-soft"
+                    className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[11px] font-semibold text-ink-soft"
                     style={{ top: `${pct(f.start)}%`, height: `${h}%` }}
                   >
                     {dur(f.end - f.start)} free

@@ -289,7 +289,9 @@ export function TripAgenda({
   onOpen: (b: Booking) => void;
   onAddStay: (dateISO: string) => void;
 }) {
-  const timeline = buildTimeline(bookings);
+  // "Still to book" sits directly above this and lists every unreserved item.
+  // Repeating them here made the itinerary read as fuller than it is.
+  const timeline = buildTimeline(bookings.filter((b) => b.status !== "tobook"));
 
   return (
     <div className="space-y-2">

@@ -32,11 +32,13 @@ export function ToBookList({
   onOpen,
   onBooked,
   onAssign,
+  onDismiss,
 }: {
   bookings: Booking[];
   onOpen: (b: Booking) => void;
   onBooked: (b: Booking) => void;
   onAssign: (items: Booking[]) => void;
+  onDismiss: (b: Booking) => void;
 }) {
   // Expanded by default — this is work waiting to be done — but the choice
   // sticks once made, since a long list is worth folding away between trips.
@@ -147,6 +149,16 @@ export function ToBookList({
                         </span>
                       )}
                     </span>
+                  </button>
+                  {/* Plans change. Dropping one shouldn't mean opening it,
+                      finding the delete, and confirming. */}
+                  <button
+                    onClick={() => onDismiss(b)}
+                    aria-label={`Dismiss "${b.title}"`}
+                    title="Not doing this"
+                    className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-paper hover:text-ink"
+                  >
+                    <i className="ti ti-x text-[14px]" aria-hidden="true" />
                   </button>
                 </li>
               ))}

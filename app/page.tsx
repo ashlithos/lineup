@@ -266,7 +266,11 @@ export default function Home() {
     setFlash("Scanning your inbox…");
     try {
       const r = await fetch("/api/scan", { method: "POST" });
-      const d = (await r.json()) as { added?: string[]; error?: string };
+      const d = (await r.json()) as {
+        added?: string[];
+        cancelled?: string[];
+        error?: string;
+      };
       // Token expired/revoked (Google drops them weekly for unverified apps) —
       // bounce straight into the reconnect flow instead of failing silently.
       if (d.error === "reconnect" || d.error === "not-connected") {
@@ -274,8 +278,13 @@ export default function Home() {
         window.location.href = "/api/gmail/connect";
         return;
       }
-      if (d.added?.length) {
-        setFlash(`Added ${d.added.length}: ${d.added.join(", ")}`);
+      const news = [
+        d.added?.length && `Added ${d.added.length}: ${d.added.join(", ")}`,
+        d.cancelled?.length &&
+          `Cancelled ${d.cancelled.join(", ")} — the email said so`,
+      ].filter(Boolean);
+      if (news.length) {
+        setFlash(news.join(" · "));
         await refresh();
       } else {
         setFlash("No new bookings found.");

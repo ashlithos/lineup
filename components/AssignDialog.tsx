@@ -216,13 +216,18 @@ export function AssignDialog({
                             {whenLabel(b)}
                             {b.location ? ` · ${b.location}` : ""}
                           </span>
-                          <span
-                            className={`mt-1.5 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                              URGENCY_STYLE[bookByChip(b).tone]
-                            }`}
-                          >
-                            {bookByChip(b).text}
-                          </span>
+                          {(() => {
+                            const chip = bookByChip(b);
+                            return chip ? (
+                              <span
+                                className={`mt-1.5 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                                  URGENCY_STYLE[chip.tone]
+                                }`}
+                              >
+                                {chip.text}
+                              </span>
+                            ) : null;
+                          })()}
                         </span>
                       </label>
                     </li>

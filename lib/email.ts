@@ -122,6 +122,7 @@ export function renderHandoff(
     .map((b) => {
       const u = bookUrgency(b, now);
       const urgent = u === "overdue" || u === "now";
+      const line = bookByLine(b, now);
       const links = bookLinks(b)
         .map(
           (l) =>
@@ -134,10 +135,14 @@ export function renderHandoff(
           <div style="font-size:13px;color:#5a5248;margin-top:3px">
             ${esc(whenLabel(b))}${b.location ? ` · ${esc(b.location)}` : ""}
           </div>
-          <div style="font-size:13px;margin-top:6px;color:${urgent ? "#c25b33" : "#5a5248"};font-weight:${urgent ? 600 : 400}">
-            ${esc(bookByLine(b, now))}
+          ${
+            line
+              ? `<div style="font-size:13px;margin-top:6px;color:${urgent ? "#c25b33" : "#5a5248"};font-weight:${urgent ? 600 : 400}">
+            ${esc(line)}
           </div>
-          <div style="font-size:12px;color:#938979;margin-top:2px">${esc(leadTime(b.category).note)}</div>
+          <div style="font-size:12px;color:#938979;margin-top:2px">${esc(leadTime(b.category).note)}</div>`
+              : ""
+          }
           ${b.notes ? `<div style="font-size:12px;color:#938979;margin-top:4px">${esc(b.notes)}</div>` : ""}
           ${links ? `<div style="font-size:13px;margin-top:8px">${links}</div>` : ""}
         </td>

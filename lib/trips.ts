@@ -56,10 +56,17 @@ function tripCities(bs: Booking[]): string[] {
 // overlap (e.g. a San Jose comedy show during a Vegas trip), not part of it.
 function fitsTrip(b: Booking, cities: string[]): boolean {
   if (b.category === "hotel" || isTransport(b.category)) return true;
-  const c = cityOf(b.location);
-  if (!c || cities.length === 0) return true; // nothing to contradict — keep by date
-  const cl = norm(c);
-  return cities.some((tc) => tc.includes(cl) || cl.includes(tc));
+  if (cities.length === 0) return true; // nothing to contradict — keep by date
+  // Match against every part of the address, not just the piece before the
+  // first comma: "Yorkdale, Toronto" and "3401 Dufferin St, Toronto, ON" both
+  // name a city the trip knows, and a dinner exiled from its own trip is a
+  // worse mistake than a local dinner wrongly swept into one.
+  const parts = (b.location ?? "")
+    .split(/[,→⇄]/)
+    .map((p) => norm(p))
+    .filter(Boolean);
+  if (!parts.length) return true;
+  return parts.some((p) => cities.some((tc) => tc.includes(p) || p.includes(tc)));
 }
 
 function rangeLabel(bookings: Booking[]): string {

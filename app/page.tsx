@@ -319,6 +319,10 @@ export default function Home() {
   };
 
   const openEdit = (b: Booking) => {
+    // Nothing on a "to book" item is reserved, so the booking form's price,
+    // cancellation window and confirmation link have nothing to say about it.
+    // Edit it as the plan it still is.
+    if (b.status === "tobook") return openEditPlan(b);
     setEditing(b);
     setAddPrefill(null);
     setDialogOpen(true);

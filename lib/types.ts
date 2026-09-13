@@ -44,7 +44,7 @@ export interface Booking {
   vendor?: string;
   location?: string;
   eventAt: string; // ISO — when the fun happens (hotel check-in)
-  checkOut?: string;
+  checkOut?: string; // ISO — hotel check-out; drives the nights count
   /** When a flight/train lands. Departure lives in eventAt. */
   arriveAt?: string;
   /**
@@ -54,7 +54,11 @@ export interface Booking {
    */
   durationMin?: number;
   /** Who is going to book a "tobook" item. Free text — a name, or "me". */
-  assignee?: string; // ISO — hotel check-out; drives the nights count
+  assignee?: string;
+  /** Where the ask was sent, so a nudge can be sent to the same place. */
+  assigneeEmail?: string;
+  /** ISO — when the ask went out. Absent means nobody has been asked yet. */
+  assignedAt?: string;
   amount?: number;
   currency: string; // e.g. "GBP", "USD"
   refundable: boolean;

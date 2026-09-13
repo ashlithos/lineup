@@ -14,7 +14,7 @@ import {
 import { localDate } from "@/lib/localtime";
 import { cityLabel, sunTimes } from "@/lib/sun";
 import { forecastForPlaces, weatherLook, type DayWeather } from "@/lib/weather";
-import { timetableRows, toCSV, toTSV } from "@/lib/exportTable";
+import { buildSheetGrid, gridCSV, gridTSV } from "@/lib/sheetGrid";
 
 const SPAN = DAY_END - DAY_START;
 const pct = (m: number) => ((m - DAY_START) / SPAN) * 100;
@@ -50,6 +50,8 @@ export function WeekGrid({
   onOpen: (b: Booking) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
   const [weather, setWeather] = useState<Record<string, Map<string, DayWeather>>>({});
   // Meal windows are always drawn now — the toggle made way for export.
   const days = buildWeek(bookings, { meals: true });
@@ -68,16 +70,16 @@ export function WeekGrid({
 
   if (!days.length) return null;
 
-  const rows = timetableRows(days);
   const fileName = `${bookings[0]?.tripName ?? "trip"} timetable`
     .replace(/[^\w \-]/g, "")
     .trim();
+  const grid = buildSheetGrid(days, bookings, fileName || "Timetable");
 
   // Tab-separated is what a spreadsheet expects off the clipboard, so this
-  // pastes straight into Sheets or Excel as real columns.
+  // pastes straight into Sheets or Excel as the same grid that's on screen.
   const copyTable = async () => {
     try {
-      await navigator.clipboard.writeText(toTSV(rows));
+      await navigator.clipboard.writeText(gridTSV(grid));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -85,17 +87,59 @@ export function WeekGrid({
     }
   };
 
-  const exportSheet = () => {
-    // A BOM so Excel reads the accents in "Québec" correctly.
-    const blob = new Blob(["\uFEFF" + toCSV(rows)], {
+  // A BOM so Excel reads the accents in "Québec" correctly. The anchor has to
+  // be in the document, and the URL has to outlive the click, or Safari and
+  // Firefox quietly drop the download.
+  const downloadCSV = () => {
+    const blob = new Blob(["\uFEFF" + gridCSV(grid)], {
       type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fileName}.csv`;
+    a.download = `${fileName || "timetable"}.csv`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  };
+
+  // Builds the sheet in Drive and opens it. Falls back to the CSV whenever
+  // Google isn't available, so the button always does something.
+  const exportSheet = async () => {
+    setExporting(true);
+    setExportNote(null);
+    // Opened before the await: a tab opened after one is blocked as a popup.
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const res = await fetch("/api/sheets/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookings, title: fileName || "Timetable" }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (res.ok && data.url) {
+        if (tab) tab.location.href = data.url;
+        else window.open(data.url, "_blank", "noopener");
+        return;
+      }
+      tab?.close();
+      if (data.error === "not-connected" || data.error === "reconnect") {
+        setExportNote("connect");
+      } else {
+        setExportNote("csv");
+        downloadCSV();
+      }
+    } catch {
+      tab?.close();
+      setExportNote("csv");
+      downloadCSV();
+    } finally {
+      setExporting(false);
+    }
   };
 
   const anyUnknown = days.some((d) => d.hasUnknown);
@@ -119,13 +163,31 @@ export function WeekGrid({
           </button>
           <button
             onClick={exportSheet}
-            className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
+            disabled={exporting}
+            className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50"
           >
             <i className="ti ti-table-export text-[14px]" aria-hidden="true" />
-            Export to sheet
+            {exporting ? "Building sheet…" : "Export to Google Sheets"}
           </button>
         </div>
       </div>
+
+      {exportNote === "connect" && (
+        <p className="mb-3 rounded-lg border border-line bg-paper px-3 py-2 text-[12px] text-ink-soft">
+          Google isn&apos;t connected yet.{" "}
+          <a href="/api/gmail/connect" className="font-medium text-accent hover:underline">
+            Connect Google
+          </a>{" "}
+          and the sheet will be built in your Drive. (Already connected for
+          email? This asks again — the old permission didn&apos;t cover Sheets.)
+        </p>
+      )}
+      {exportNote === "csv" && (
+        <p className="mb-3 rounded-lg border border-line bg-paper px-3 py-2 text-[12px] text-ink-soft">
+          Couldn&apos;t reach Google, so the same grid downloaded as a CSV —
+          open it with File → Import in Sheets.
+        </p>
+      )}
 
       {/* The grid scrolls sideways on narrow screens rather than squashing. */}
       <div className="-mx-1 overflow-x-auto px-1 pb-1">

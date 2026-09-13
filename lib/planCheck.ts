@@ -225,6 +225,36 @@ export function runRules(bookings: Booking[]): Finding[] {
     });
   }
 
+  // 6c. The same journey twice. A flight imported from its confirmation email
+  //     and again from a pasted itinerary rarely matches on price — one copy
+  //     usually has none — so 6b never sees it. Two journeys on one day that
+  //     leave at the same minute, or run the same route, are one journey.
+  const journeys = live.filter((b) => isTransport(b.category) && !dupedIds.has(b.id));
+  const seenJourneyPair = new Set<string>();
+  for (const a of journeys) {
+    for (const b of journeys) {
+      if (a.id >= b.id) continue;
+      if (a.eventAt.slice(0, 10) !== b.eventAt.slice(0, 10)) continue;
+      const sameMinute = a.eventAt.slice(11, 16) === b.eventAt.slice(11, 16);
+      const route = (x: Booking) => (x.location ?? "").toLowerCase().replace(/\s+/g, "");
+      const sameRoute = !!route(a) && route(a) === route(b);
+      if (!sameMinute && !sameRoute) continue;
+      const pair = `${a.id}|${b.id}`;
+      if (seenJourneyPair.has(pair)) continue;
+      seenJourneyPair.add(pair);
+      found.push({
+        id: `dupejourney:${pair}`,
+        severity: "check",
+        title: `Same journey listed twice`,
+        detail: `"${a.title}" and "${b.title}" both leave on ${fmt(a.eventAt)}${
+          sameRoute ? " on the same route" : " at the same time"
+        }. They're probably one booking imported twice — delete whichever has less detail.`,
+        bookingIds: [a.id, b.id],
+        source: "rules",
+      });
+    }
+  }
+
   // 7. A trip that lands somewhere but never leaves (or vice versa).
   const byTrip = new Map<string, Booking[]>();
   for (const b of live) {

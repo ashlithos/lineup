@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   CATEGORY_META,
   CATEGORY_ORDER,
+  isTransport,
   type Booking,
   type Category,
 } from "@/lib/types";
@@ -12,17 +13,21 @@ import { cancelDeadlineGcalUrl, tripGcalUrl } from "@/lib/calendar";
 
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
+// Booking times are wall-clock times at the place they happen — a 9:55am
+// departure from Toronto is 9:55am, wherever you happen to be reading it. So
+// the form reads and writes the clock literally. Going through `new Date()`
+// re-interprets that 9:55 in the browser's own zone and `toISOString()` then
+// writes it back in UTC, which slid every edited booking by the editor's
+// offset (and past midnight, onto the wrong day).
 function toLocalInput(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return iso ? iso.slice(0, 16) : "";
 }
 
-function fromLocalInput(val: string): string | undefined {
+/** Keeps whatever real offset the stamp already carried, so it stays placed. */
+function fromLocalInput(val: string, prev?: string): string | undefined {
   if (!val) return undefined;
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? undefined : d.toISOString();
+  const offset = prev?.match(/([+-]\d{2}:\d{2})$/)?.[1];
+  return `${val}:00${offset && offset !== "+00:00" ? offset : ""}`;
 }
 
 const CURRENCIES = ["USD", "CAD", "EUR", "GBP"];
@@ -50,6 +55,7 @@ export function AddBookingDialog({
   const [vendor, setVendor] = useState("");
   const [location, setLocation] = useState("");
   const [eventAt, setEventAt] = useState("");
+  const [arriveAt, setArriveAt] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -66,6 +72,7 @@ export function AddBookingDialog({
     setLocation(booking?.location ?? prefill?.location ?? "");
     setEventAt(toLocalInput(booking?.eventAt ?? prefill?.eventAt));
     setCheckOut(toLocalInput(booking?.checkOut));
+    setArriveAt(toLocalInput(booking?.arriveAt));
     setAmount(booking?.amount != null ? String(booking.amount) : "");
     setCurrency(booking?.currency ?? "USD");
     setRefundable(booking?.refundable ?? true);
@@ -85,8 +92,9 @@ export function AddBookingDialog({
   const canSave = title.trim() !== "" && eventAt !== "";
 
   const isHotel = category === "hotel";
-  const ci = fromLocalInput(eventAt);
-  const co = fromLocalInput(checkOut);
+  const isJourney = isTransport(category);
+  const ci = fromLocalInput(eventAt, booking?.eventAt);
+  const co = fromLocalInput(checkOut, booking?.checkOut);
   const stayNights = isHotel && ci && co ? nightsBetween(ci, co) : 0;
 
   // Calendar links live here (the detail view), not on the card. Built from the
@@ -102,12 +110,20 @@ export function AddBookingDialog({
         category,
         vendor: vendor.trim() || undefined,
         location: location.trim() || undefined,
-        eventAt: fromLocalInput(eventAt)!,
-        checkOut: category === "hotel" ? fromLocalInput(checkOut) : undefined,
+        eventAt: fromLocalInput(eventAt, booking?.eventAt)!,
+        checkOut:
+          category === "hotel"
+            ? fromLocalInput(checkOut, booking?.checkOut)
+            : undefined,
+        // A journey's landing time and length are the whole reason the
+        // timetable can draw it; an edit that didn't carry them forward left
+        // the flight running to the end of the day.
+        arriveAt: isJourney ? fromLocalInput(arriveAt, booking?.arriveAt) : undefined,
+        durationMin: isJourney ? booking?.durationMin : undefined,
         amount: amount.trim() ? Number(amount) : undefined,
         currency,
         refundable,
-        cancelBy: refundable ? fromLocalInput(cancelBy) : undefined,
+        cancelBy: refundable ? fromLocalInput(cancelBy, booking?.cancelBy) : undefined,
         cancelUrl: cancelUrl.trim() || undefined,
         notes: notes.trim() || undefined,
         kept: booking?.kept,
@@ -212,6 +228,21 @@ export function AddBookingDialog({
               </div>
             )}
           </div>
+          {isJourney && (
+            <div>
+              <label className={label}>Arrives (optional)</label>
+              <input
+                type="datetime-local"
+                className={field}
+                value={arriveAt}
+                onChange={(e) => setArriveAt(e.target.value)}
+              />
+              <p className="mt-1 text-[12px] text-ink-faint">
+                Local time where it lands. Without it the journey blocks out the
+                rest of the day on the timetable.
+              </p>
+            </div>
+          )}
           {isHotel && (
             <div>
               <label className={label}>Where (optional)</label>

@@ -19,6 +19,18 @@ type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
 const DAY_MS = 86_400_000;
 
+// Suggested lengths, in minutes. A plan isn't booked, so this is a guess about
+// how much of the day it eats — enough to plan the rest of the day around.
+const DURATIONS: [number, string][] = [
+  [30, "30 minutes"],
+  [60, "1 hour"],
+  [90, "1½ hours"],
+  [120, "2 hours"],
+  [180, "3 hours"],
+  [240, "Half a day"],
+  [480, "Most of the day"],
+];
+
 /** Every calendar day the trip covers, as "YYYY-MM-DD". */
 function tripDayList(trip: Trip): string[] {
   const stamps = trip.bookings
@@ -73,6 +85,9 @@ export function PlanDialog({
   // Pinning to a trip turns a someday-wish into a dated thing that still has
   // to be booked — brunch on the Saturday of a trip you've already booked.
   const [tripKey, setTripKey] = useState("");
+  const [location, setLocation] = useState("");
+  const [bookUrl, setBookUrl] = useState("");
+  const [durationMin, setDurationMin] = useState("");
   const [day, setDay] = useState("");
   const [time, setTime] = useState("11:00");
 
@@ -89,9 +104,18 @@ export function PlanDialog({
     setImageUrl(plan?.imageUrl ?? "");
     setPhotoInput("");
     setCompanions(plan?.companions ?? []);
+    setLocation(plan?.location ?? "");
+    setBookUrl(plan?.cancelUrl ?? "");
+    setDurationMin(plan?.durationMin != null ? String(plan.durationMin) : "");
     const iso = plan?.eventAt ?? "";
     setRoughMonth(!iso || isUndated(iso) ? "" : iso.slice(0, 7));
-    const onTrip = trips?.find((t) => t.label === plan?.tripName);
+    // An item pasted from an itinerary has a date but no trip name, so fall
+    // back to whichever trip actually covers that day.
+    const onTrip =
+      trips?.find((t) => t.label === plan?.tripName) ??
+      (iso && !isUndated(iso)
+        ? trips?.find((t) => !t.isOther && tripDayList(t).includes(iso.slice(0, 10)))
+        : undefined);
     setTripKey(onTrip?.key ?? "");
     setDay(onTrip && iso ? iso.slice(0, 10) : "");
     setTime(onTrip && iso ? iso.slice(11, 16) : "11:00");
@@ -160,7 +184,9 @@ export function PlanDialog({
       {
         title: title.trim(),
         category,
-        cancelUrl: plan?.cancelUrl,
+        location: location.trim() || undefined,
+        cancelUrl: bookUrl.trim() || undefined,
+        durationMin: onTrip && durationMin ? Number(durationMin) : plan?.durationMin,
         // A budget is no longer asked for here, but one already written down
         // shouldn't be thrown away by an edit.
         amount: plan?.amount,
@@ -455,6 +481,25 @@ export function PlanDialog({
                   onChange={(e) => setTime(e.target.value)}
                 />
               </div>
+              <div className="col-span-2">
+                <label className={label}>How long? (optional)</label>
+                <select
+                  className={field}
+                  value={durationMin}
+                  onChange={(e) => setDurationMin(e.target.value)}
+                >
+                  <option value="">Use a typical length</option>
+                  {DURATIONS.map(([mins, text]) => (
+                    <option key={mins} value={mins}>
+                      {text}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[12px] text-ink-faint">
+                  How much of the day it takes — this is the space it holds on
+                  the timetable.
+                </p>
+              </div>
             </div>
           ) : (
             <div>
@@ -488,6 +533,27 @@ export function PlanDialog({
           </div>
 
           <div>
+            <label className={label}>Where (optional)</label>
+            <input
+              className={field}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Mile End, Montreal"
+            />
+          </div>
+
+          <div>
+            <label className={label}>Where to book it (optional)</label>
+            <input
+              className={field}
+              value={bookUrl}
+              onChange={(e) => setBookUrl(e.target.value)}
+              placeholder="https://… (the page you'd book on)"
+              inputMode="url"
+            />
+          </div>
+
+          <div>
             <label className={label}>Notes (optional)</label>
             <textarea
               className={`${field} min-h-[64px] resize-none`}
@@ -503,7 +569,7 @@ export function PlanDialog({
           disabled={!canSave}
           className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
-          {editing ? "Save changes" : "Add to plan"}
+          {editing ? "Save plan" : "Add to plan"}
         </button>
 
         {editing && plan && (

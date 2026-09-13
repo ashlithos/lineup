@@ -5,7 +5,7 @@ import { CATEGORY_META, isTransport, type Booking } from "@/lib/types";
 import { tripDays } from "@/lib/agenda";
 import { collapseFlights, collapseStays, isFlightGroup } from "@/lib/flights";
 import { nightsBetween } from "@/lib/urgency";
-import { localDate } from "@/lib/localtime";
+import { localDate, localStamp } from "@/lib/localtime";
 import { ShareTimetable } from "@/components/ShareTimetable";
 
 export const dynamic = "force-dynamic";
@@ -68,10 +68,10 @@ const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
 function rangeLabel(bookings: Booking[]): string {
   const stamps = bookings
     .flatMap((b) => [b.eventAt, b.checkOut])
-    .filter(Boolean)
-    .map((d) => +new Date(d as string));
-  const start = new Date(Math.min(...stamps)).toISOString();
-  const end = new Date(Math.max(...stamps)).toISOString();
+    .filter((d): d is string => !!d)
+    .sort((a, b) => localStamp(a) - localStamp(b));
+  const start = stamps[0];
+  const end = stamps[stamps.length - 1];
   const sameYear = fmt(start, { year: "numeric" }) === fmt(end, { year: "numeric" });
   const left = fmt(start, { month: "short", day: "numeric" });
   const right = fmt(end, { month: "short", day: "numeric", year: "numeric" });
@@ -110,12 +110,9 @@ function totalNights(bookings: Booking[]): number {
   const stamps = bookings
     .flatMap((b) => [b.eventAt, b.checkOut])
     .filter((d): d is string => !!d)
-    .map((d) => +new Date(d));
+    .sort((a, b) => localStamp(a) - localStamp(b));
   if (!stamps.length) return 0;
-  return nightsBetween(
-    new Date(Math.min(...stamps)).toISOString(),
-    new Date(Math.max(...stamps)).toISOString(),
-  );
+  return nightsBetween(stamps[0], stamps[stamps.length - 1]);
 }
 
 export async function generateMetadata({

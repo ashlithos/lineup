@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Trip } from "@/lib/trips";
 import { isTransport } from "@/lib/types";
 import { tripDays } from "@/lib/agenda";
-import { localDate } from "@/lib/localtime";
+import { localDate, localStamp } from "@/lib/localtime";
 
 const fmt = (iso: string, o: Intl.DateTimeFormatOptions) =>
   localDate(iso).toLocaleDateString("en-US", { timeZone: "UTC", ...o });
@@ -32,11 +32,11 @@ export function ShareModal({
   const gaps = tripDays(bookings).filter((d) => d.gap).length;
   const stamps = bookings
     .flatMap((b) => [b.eventAt, b.checkOut])
-    .filter(Boolean)
-    .map((d) => +new Date(d as string));
+    .filter((d): d is string => !!d)
+    .sort((a, b) => localStamp(a) - localStamp(b));
   const range = stamps.length
-    ? `${fmt(new Date(Math.min(...stamps)).toISOString(), { month: "short", day: "numeric" })} – ${fmt(
-        new Date(Math.max(...stamps)).toISOString(),
+    ? `${fmt(stamps[0], { month: "short", day: "numeric" })} – ${fmt(
+        stamps[stamps.length - 1],
         { month: "short", day: "numeric", year: "numeric" },
       )}`
     : "";

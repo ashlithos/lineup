@@ -41,6 +41,13 @@ export function localMins(iso: string): number {
 export const localDate = (iso: string) =>
   new Date(localDayMs(iso) + localMins(iso) * 60_000);
 
+/**
+ * The wall-clock instant as a sortable number. Use it to compare stamps —
+ * `+new Date(iso)` re-reads an offset-less stamp in the browser's own zone,
+ * which can hand back the wrong calendar day for an evening booking.
+ */
+export const localStamp = (iso: string) => localDayMs(iso) + localMins(iso) * 60_000;
+
 /** Real elapsed minutes between two stamps, honouring their offsets. */
 export function durationMin(from: string, to: string): number | null {
   const a = Date.parse(from);

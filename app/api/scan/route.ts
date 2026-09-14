@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=15`,
     { headers: auth },
   ).then((r) => r.json())) as { messages?: { id: string }[] };
-  const ids = (list.messages ?? []).map((m) => m.id).slice(0, 8);
+  const ids = (list.messages ?? []).map((m) => m.id).slice(0, 15);
 
   // Existing bookings so we never add a duplicate.
   const existing = (await fetch(`${origin}/api/bookings`)
@@ -73,16 +73,34 @@ export async function POST(req: Request) {
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
         { headers: auth },
       ).then((r) => r.json())) as { payload?: GmailPart };
+      const subject = subjectOf(m.payload);
       const cands = await extractCandidatesFromText(gmailText(m.payload));
-      const cancels = isCancellation(subjectOf(m.payload));
-      return cands.map((c) => ({ c, id, cancels }));
+      const cancels = isCancellation(subject);
+      // An email that yielded nothing is the interesting case: it matched the
+      // search, so it looked like a booking, and then vanished without a word.
+      if (!cands.length) return [{ c: null, id, cancels, subject }];
+      return cands.map((c) => ({ c, id, cancels, subject }));
     }),
   );
 
   const added: string[] = [];
   const cancelled: string[] = [];
-  for (const { c, id, cancels } of perEmail.flat()) {
-    if (!c.title || !c.eventAt || c.confidence === "partial") continue;
+  // Anything the scan decided against, and why. Silence was indistinguishable
+  // from "nothing new", which is the one thing it must never be mistaken for.
+  const skipped: { subject: string; why: string }[] = [];
+  for (const { c, id, cancels, subject } of perEmail.flat()) {
+    if (!c) {
+      skipped.push({ subject, why: "couldn't read a booking out of it" });
+      continue;
+    }
+    if (!c.title || !c.eventAt) {
+      skipped.push({ subject, why: c.eventAt ? "no name found" : "no date found" });
+      continue;
+    }
+    if (c.confidence === "partial") {
+      skipped.push({ subject, why: "too unsure to add" });
+      continue;
+    }
 
     // "Your reservation has been cancelled" is news about a booking you already
     // have, not a new one. Retire the match; never import the email itself.
@@ -100,6 +118,8 @@ export async function POST(req: Request) {
         });
         hit.status = "cancelled"; // don't cancel it twice from a second email
         cancelled.push(hit.title);
+      } else {
+        skipped.push({ subject, why: "a cancellation for nothing on file" });
       }
       continue;
     }
@@ -107,7 +127,10 @@ export async function POST(req: Request) {
     // Dedup only against already-saved bookings — never merge two candidates
     // from this scan, since same-route/same-day can be two real reservations
     // (e.g. two Southwest confirmations).
-    if (seen.has(key(c.title, c.eventAt))) continue;
+    if (seen.has(key(c.title, c.eventAt))) {
+      skipped.push({ subject, why: "already on file" });
+      continue;
+    }
     await fetch(`${origin}/api/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -134,5 +157,5 @@ export async function POST(req: Request) {
     added.push(c.title);
   }
 
-  return NextResponse.json({ scanned: ids.length, added, cancelled });
+  return NextResponse.json({ scanned: ids.length, added, cancelled, skipped });
 }

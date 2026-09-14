@@ -270,6 +270,7 @@ export default function Home() {
       const d = (await r.json()) as {
         added?: string[];
         cancelled?: string[];
+        skipped?: { subject: string; why: string }[];
         error?: string;
       };
       // Token expired/revoked (Google drops them weekly for unverified apps) —
@@ -279,22 +280,25 @@ export default function Home() {
         window.location.href = "/api/gmail/connect";
         return;
       }
+      // Everything the scan did, including what it decided against: an email
+      // it couldn't read used to look exactly like no email at all.
+      const short = (t: string) => (t.length > 46 ? `${t.slice(0, 45)}…` : t);
+      const passed = (d.skipped ?? []).filter((x) => x.why !== "already on file");
       const news = [
         d.added?.length && `Added ${d.added.length}: ${d.added.join(", ")}`,
         d.cancelled?.length &&
           `Cancelled ${d.cancelled.join(", ")} — the email said so`,
-      ].filter(Boolean);
-      if (news.length) {
-        setFlash(news.join(" · "));
-        await refresh();
-      } else {
-        setFlash("No new bookings found.");
-      }
+        ...passed.slice(0, 3).map((x) => `Skipped “${short(x.subject)}” — ${x.why}`),
+        passed.length > 3 && `…and ${passed.length - 3} more skipped`,
+      ].filter(Boolean) as string[];
+      if (d.added?.length || d.cancelled?.length) await refresh();
+      setFlash(news.length ? news.join("\n") : "No new bookings found.");
     } catch {
       setFlash("Scan failed — try again.");
     } finally {
       setScanning(false);
-      setTimeout(() => setFlash(null), 5000);
+      // A report of what was skipped takes longer to read than "Added 1".
+      setTimeout(() => setFlash(null), 12000);
     }
   };
   const handleConfirmReview = (drafts: Draft[]) => {
@@ -454,7 +458,7 @@ export default function Home() {
 
       {flash && (
         <div className="mt-5 flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-soft px-3.5 py-2.5 text-[13px] text-ok">
-          <span className="min-w-0 flex-1">{flash}</span>
+          <span className="min-w-0 flex-1 whitespace-pre-line">{flash}</span>
           {flashUndo && (
             <button
               onClick={flashUndo}

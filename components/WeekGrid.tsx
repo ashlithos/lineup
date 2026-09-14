@@ -268,7 +268,9 @@ export function WeekGrid({
           {days.map((d) => (
             <div
               key={d.key}
-              className="relative h-[340px] overflow-hidden rounded-lg border border-line bg-raised md:h-[440px] xl:h-[500px]"
+              // A quiet ground instead of an outline: the day still reads as a
+              // column, without a box drawn round everything on it.
+              className="relative h-[340px] overflow-hidden rounded-lg bg-paper/70 md:h-[440px] xl:h-[500px]"
             >
               {/* Daylight: the hours before sunrise and after sunset are shaded,
                   so the usable part of the day reads at a glance. Computed for
@@ -314,20 +316,11 @@ export function WeekGrid({
               })()}
               {/* After the planning cutoff — drawn, but never counted as free. */}
               <span
-                className="absolute inset-x-0 bottom-0 bg-line/50"
+                className="absolute inset-x-0 bottom-0 bg-line/40"
                 style={{ top: `${pct(PLAN_END)}%` }}
                 title="Not counted — you don't plan anything this late"
                 aria-hidden="true"
               />
-              {HOURS.map((h) => (
-                <span
-                  key={h}
-                  className="absolute inset-x-0 border-t border-line/70"
-                  style={{ top: `${pct(h)}%` }}
-                  aria-hidden="true"
-                />
-              ))}
-
               {d.blocks.map((b) => {
                 const top = pct(b.start);
                 const real = pct(b.end) - top;
@@ -387,9 +380,9 @@ export function WeekGrid({
               })}
 
               {/* Label the open stretches — the point of the whole view. */}
-              {d.free.map((f) => {
+              {d.free.map((f, i) => {
                 const h = pct(f.end) - pct(f.start);
-                if (h < 9) return null;
+                if (h < 9 || i === 0) return null;
                 return (
                   <span
                     key={f.key}
@@ -403,24 +396,12 @@ export function WeekGrid({
             </div>
           ))}
 
-          {/* totals row */}
-          <div className="pt-1.5 text-right font-mono text-[9.5px] text-ink-faint">
-            free
-          </div>
-          {days.map((d) => (
-            <div
-              key={`t-${d.key}`}
-              className="pt-1.5 text-center font-mono text-[11px] font-medium text-ink"
-            >
-              {dur(d.freeMinutes)}
-            </div>
-          ))}
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-2.5">
         {[
-          ["bg-raised border border-line", "free"],
+          ["bg-paper/70", "free"],
           ["bg-line-strong", "travel"],
           ["bg-accent", "booked"],
           ["bg-line", "airport time"],

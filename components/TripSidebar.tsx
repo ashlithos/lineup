@@ -105,7 +105,7 @@ export function TripSidebar({
             setUrl(trip.image ?? "");
             setEditing((v) => !v);
           }}
-          className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-ink/70 px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+          className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-2 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
           <i className="ti ti-photo text-[13px]" aria-hidden="true" /> Change photo
         </button>

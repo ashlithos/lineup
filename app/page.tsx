@@ -773,7 +773,11 @@ export default function Home() {
                               aria-hidden="true"
                             />
                           )}
-                          <span className="min-w-0 truncate font-serif text-[27px] font-bold leading-[1.15] tracking-[-0.01em] text-ink md:text-[30px]">
+                          <span
+                            role="heading"
+                            aria-level={2}
+                            className="min-w-0 truncate font-serif text-[27px] font-bold leading-[1.15] tracking-[-0.01em] text-ink md:text-[30px]"
+                          >
                             {trip.label}
                           </span>
                           {!trip.isOther && (
@@ -798,7 +802,7 @@ export default function Home() {
                       <button
                         onClick={() => openShare(trip)}
                         aria-label="Share trip"
-                        className="mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                        className="tap mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
                       >
                         <i
                           className="ti ti-share-2 text-[17px]"
@@ -809,7 +813,7 @@ export default function Home() {
                     <button
                       onClick={() => toggleTrip(trip.key)}
                       aria-label={open ? "Collapse trip" : "Expand trip"}
-                      className="mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                      className="tap mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
                     >
                       <i
                         className={`ti ti-chevron-down text-[18px] transition-transform ${open ? "" : "-rotate-90"}`}
@@ -875,7 +879,7 @@ export default function Home() {
                                       return next;
                                     })
                                   }
-                                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                                  className={`rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
                                     active
                                       ? "bg-ink text-white"
                                       : "text-ink-soft hover:text-ink"

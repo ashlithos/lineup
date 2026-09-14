@@ -37,6 +37,14 @@ export default function Home() {
   const [rail, setRail] = useState<Rail>("forward");
   const [filter, setFilter] = useState<TypeFilterValue>("all");
   const [planYear, setPlanYear] = useState<string>("all"); // "all" | "YYYY"
+  // "all" | "trips" | a trip name | "Not in a trip"
+  const [planScope, setPlanScope] = useState<string>("all");
+  // Where a plan begun from a trip's timetable should land.
+  const [planPrefill, setPlanPrefill] = useState<{
+    tripKey?: string;
+    day?: string;
+    time?: string;
+  } | null>(null);
   const [weekFilter, setWeekFilter] = useState<number | null>(null); // Monday ms
   const [planCheckOpen, setPlanCheckOpen] = useState(false);
   const [shareTripObj, setShareTripObj] = useState<Trip | null>(null);
@@ -98,11 +106,13 @@ export default function Home() {
     [bookings],
   );
 
-  // Want-to-book items — not booked yet. Newest first.
+  // Everything planned and not yet booked: the undated wishes AND the dated
+  // things sitting on a trip's timetable. Pinning one to a day shouldn't take
+  // it out of the list of things you're planning.
   const planBase = useMemo(
     () =>
       bookings
-        .filter((b) => b.status === "plan")
+        .filter((b) => b.status === "plan" || b.status === "tobook")
         .sort(
           (a, b) =>
             new Date(a.eventAt).getTime() - new Date(b.eventAt).getTime(),
@@ -166,6 +176,20 @@ export default function Home() {
     () => items.filter((b) => b.category !== "trip"),
     [items],
   );
+  const LOOSE = "Not in a trip";
+  // Activities under the trip they belong to — the second hierarchy.
+  const planByTrip = useMemo(() => {
+    const m = new Map<string, Booking[]>();
+    for (const p of planSingles) {
+      const k = p.tripName ?? LOOSE;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(p);
+    }
+    // Named trips first, loose ones last.
+    return [...m.entries()].sort(([a], [b]) =>
+      a === LOOSE ? 1 : b === LOOSE ? -1 : a.localeCompare(b),
+    );
+  }, [planSingles]);
   // Clicking a week in the density strip narrows the list to that week. The
   // strip itself keeps seeing every booking, so it doesn't collapse as you filter.
   const weekItems = useMemo(() => {
@@ -380,10 +404,18 @@ export default function Home() {
   // Plan rail handlers.
   const openAddPlan = () => {
     setEditingPlan(null);
+    setPlanPrefill(null);
+    setPlanDialogOpen(true);
+  };
+  // Started from a day on the trip's own timetable, so it opens knowing where.
+  const openPlanAt = (trip: Trip, day?: string, time?: string) => {
+    setEditingPlan(null);
+    setPlanPrefill({ tripKey: trip.key, day, time });
     setPlanDialogOpen(true);
   };
   const openEditPlan = (b: Booking) => {
     setEditingPlan(b);
+    setPlanPrefill(null);
     setPlanDialogOpen(true);
   };
   const handleSavePlan = (draft: Draft, id: string | null) => {
@@ -569,41 +601,75 @@ export default function Home() {
               <PlanEmpty onAdd={openAddPlan} />
             ) : (
               <div className="space-y-8">
-                {planTrips.length > 0 && (
-                  <section>
-                    <div className="mb-3 flex items-baseline gap-2 px-1">
-                      <h2 className="font-serif text-xl text-ink">Trips to plan</h2>
-                      <span className="text-[12px] text-ink-faint">
-                        {planTrips.length} · nothing booked yet
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4 2xl:grid-cols-4">
-                      {planTrips.map((p) => (
-                        <TripPlanCard key={p.id} plan={p} onOpen={openEditPlan} />
-                      ))}
-                    </div>
-                  </section>
+                {/* Two hierarchies: the trips themselves, and the activities
+                    under one. Moving between them is the whole navigation. */}
+                {(planTrips.length > 0 || planByTrip.length > 1) && (
+                  <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {[
+                      ["all", `Everything (${items.length})`] as [string, string],
+                      ...(planTrips.length
+                        ? ([["trips", `Trips (${planTrips.length})`]] as [string, string][])
+                        : []),
+                      ...planByTrip.map(
+                        ([name, list]) =>
+                          [name, `${name} (${list.length})`] as [string, string],
+                      ),
+                    ].map(([id, label]) => (
+                      <button
+                        key={id}
+                        onClick={() => setPlanScope(planScope === id ? "all" : id)}
+                        className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                          planScope === id
+                            ? "border-ink bg-ink text-paper"
+                            : "border-line bg-raised text-ink-soft hover:border-line-strong"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 )}
-                {planSingles.length > 0 && (
-                  <section>
-                    <div className="mb-3 flex items-baseline gap-2 px-1">
-                      <h2 className="font-serif text-xl text-ink">Things to book</h2>
-                      <span className="text-[12px] text-ink-faint">
-                        {planSingles.length}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4 2xl:grid-cols-4">
-                      {planSingles.map((p) => (
-                        <PlanCard
-                          key={p.id}
-                          plan={p}
-                          onOpen={openEditPlan}
-                          onBooked={handleBooked}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
+
+                {planTrips.length > 0 &&
+                  (planScope === "all" || planScope === "trips") && (
+                    <section>
+                      <div className="mb-3 flex items-baseline gap-2 px-1">
+                        <h2 className="font-serif text-xl text-ink">Trips to plan</h2>
+                        <span className="text-[12px] text-ink-faint">
+                          {planTrips.length} · nothing booked yet
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4 2xl:grid-cols-4">
+                        {planTrips.map((p) => (
+                          <TripPlanCard key={p.id} plan={p} onOpen={openEditPlan} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                {planScope !== "trips" &&
+                  planByTrip
+                    .filter(([name]) => planScope === "all" || planScope === name)
+                    .map(([name, list]) => (
+                      <section key={name}>
+                        <div className="mb-3 flex items-baseline gap-2 px-1">
+                          <h2 className="font-serif text-xl text-ink">{name}</h2>
+                          <span className="text-[12px] text-ink-faint">
+                            {list.length} to book
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4 2xl:grid-cols-4">
+                          {list.map((p) => (
+                            <PlanCard
+                              key={p.id}
+                              plan={p}
+                              onOpen={openEditPlan}
+                              onBooked={handleBooked}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
               </div>
             )}
           </div>
@@ -821,7 +887,13 @@ export default function Home() {
                             })}
                           </div>
                           {freeTimeTrips.has(trip.key) ? (
-                            <WeekGrid bookings={trip.bookings} onOpen={openEdit} />
+                            <WeekGrid
+                              bookings={trip.bookings}
+                              onOpen={openEdit}
+                              onAddPlan={(day, time) =>
+                                openPlanAt(trip, day, time)
+                              }
+                            />
                           ) : (
                             <div className="space-y-3">
                               <ToBookList
@@ -915,6 +987,7 @@ export default function Home() {
 
       <PlanDialog
         trips={allTrips}
+        prefill={planPrefill}
         open={planDialogOpen}
         plan={editingPlan}
         onClose={() => setPlanDialogOpen(false)}

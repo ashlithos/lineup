@@ -44,12 +44,20 @@ const HOURS = Array.from(
   (_, i) => DAY_START + i * 120,
 );
 
+/** Round up to the next half hour — nobody plans a thing for 11:04. */
+const tidy = (m: number) => Math.ceil(m / 30) * 30;
+const clock = (m: number) =>
+  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
 export function WeekGrid({
   bookings,
   onOpen,
+  onAddPlan,
 }: {
   bookings: Booking[];
   onOpen: (b: Booking) => void;
+  /** Clicking an open stretch starts a plan there, the way a calendar does. */
+  onAddPlan?: (day?: string, time?: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -153,6 +161,15 @@ export function WeekGrid({
           Open time each day, counted to {hhmm(PLAN_END)}
         </p>
         <div className="flex items-center gap-1.5">
+          {onAddPlan && (
+            <button
+              onClick={() => onAddPlan()}
+              className="flex items-center gap-1.5 rounded-full border border-accent bg-raised px-3 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
+            >
+              <i className="ti ti-plus text-[14px]" aria-hidden="true" />
+              Add a plan
+            </button>
+          )}
           <button
             onClick={copyTable}
             className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
@@ -379,18 +396,40 @@ export function WeekGrid({
                 );
               })}
 
-              {/* Label the open stretches — the point of the whole view. */}
+              {/* The open stretches: the point of the whole view, and — since
+                  they're the only place anything new can go — where you add. */}
               {d.free.map((f, i) => {
                 const h = pct(f.end) - pct(f.start);
-                if (h < 9 || i === 0) return null;
+                if (h < 5) return null;
+                const label = i === 0 ? "" : `${dur(f.end - f.start)} free`;
+                const style = { top: `${pct(f.start)}%`, height: `${h}%` };
+                if (!onAddPlan) {
+                  return (
+                    <span
+                      key={f.key}
+                      className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[11px] font-semibold text-ink-soft"
+                      style={style}
+                    >
+                      {label}
+                    </span>
+                  );
+                }
                 return (
-                  <span
+                  <button
                     key={f.key}
-                    className="pointer-events-none absolute inset-x-0 flex items-center justify-center text-[11px] font-semibold text-ink-soft"
-                    style={{ top: `${pct(f.start)}%`, height: `${h}%` }}
+                    onClick={() =>
+                      onAddPlan(d.date.slice(0, 10), clock(tidy(f.start)))
+                    }
+                    title={`Plan something here · ${hhmm(f.start)}–${hhmm(f.end)}`}
+                    className="group absolute inset-x-0 flex items-center justify-center rounded-md text-[11px] font-semibold text-ink-soft transition-colors hover:bg-accent-soft hover:text-accent"
+                    style={style}
                   >
-                    {dur(f.end - f.start)} free
-                  </span>
+                    <span className="group-hover:hidden">{label}</span>
+                    <span className="hidden items-center gap-1 group-hover:flex">
+                      <i className="ti ti-plus text-[13px]" aria-hidden="true" />
+                      Plan something
+                    </span>
+                  </button>
                 );
               })}
             </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   CATEGORY_META,
+  CATEGORY_ORDER,
   COMPANION_OPTIONS,
   PLAN_CATEGORY_ORDER,
   type Booking,
@@ -19,6 +20,12 @@ const CHECKLIST_SUGGESTIONS = ["Flights", "Hotel", "Activities", "Rental car"];
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
 const DAY_MS = 86_400_000;
+
+// Inside a trip a plan is the same shape as a booking — a flight you haven't
+// bought, a room you haven't taken — so it gets the booking types. "Other"
+// reads as "Activity" here, because that's what it nearly always is.
+const planLabel = (c: Category) =>
+  c === "other" ? "Activity" : CATEGORY_META[c].label;
 
 // Suggested lengths, in minutes. A plan isn't booked, so this is a guess about
 // how much of the day it eats — enough to plan the rest of the day around.
@@ -60,6 +67,7 @@ export function PlanDialog({
   open,
   plan,
   trips,
+  prefill,
   onClose,
   onSave,
   onDelete,
@@ -68,6 +76,8 @@ export function PlanDialog({
   plan: Booking | null;
   /** Trips already on the calendar, so a plan can be pinned to a day of one. */
   trips?: Trip[];
+  /** Where a new plan starts when it was begun from a trip's timetable. */
+  prefill?: { tripKey?: string; day?: string; time?: string } | null;
   onClose: () => void;
   onSave: (draft: Draft, id: string | null) => void;
   onDelete: (id: string) => void;
@@ -119,11 +129,13 @@ export function PlanDialog({
         ? trips?.find((t) => !t.isOther && tripDayList(t).includes(iso.slice(0, 10)))
         : undefined);
     setConfirmRemove(false);
-    setTripKey(onTrip?.key ?? "");
+    setTripKey(onTrip?.key ?? prefill?.tripKey ?? "");
     const hasDate = !!iso && !isUndated(iso);
-    setDay(hasDate ? iso.slice(0, 10) : "");
-    setTime(hasDate && iso.length > 15 ? iso.slice(11, 16) : "11:00");
-  }, [open, plan, trips]);
+    setDay(hasDate ? iso.slice(0, 10) : (prefill?.day ?? ""));
+    setTime(
+      hasDate && iso.length > 15 ? iso.slice(11, 16) : (prefill?.time ?? "11:00"),
+    );
+  }, [open, plan, trips, prefill]);
 
   const addItem = (raw: string) => {
     const label = raw.trim();
@@ -308,7 +320,7 @@ export function PlanDialog({
           <div>
             <label className={label}>Type</label>
             <div className="flex flex-wrap gap-1.5">
-              {PLAN_CATEGORY_ORDER.filter((c) => !onTrip || c !== "trip").map((c) => (
+              {(onTrip ? CATEGORY_ORDER : PLAN_CATEGORY_ORDER).map((c) => (
                 <button
                   key={c}
                   onClick={() => setCategory(c)}
@@ -318,7 +330,8 @@ export function PlanDialog({
                       : "border-line bg-paper text-ink-soft hover:border-line-strong"
                   }`}
                 >
-                  {CATEGORY_META[c].emoji} {CATEGORY_META[c].label}
+                  {CATEGORY_META[c].emoji}{" "}
+                  {onTrip ? planLabel(c) : CATEGORY_META[c].label}
                 </button>
               ))}
             </div>

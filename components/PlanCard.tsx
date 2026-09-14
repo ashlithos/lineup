@@ -2,7 +2,8 @@
 
 import { CATEGORY_META, type Booking } from "@/lib/types";
 import { formatMoney } from "@/lib/urgency";
-import { localDate } from "@/lib/localtime";
+import { localDate, localMins } from "@/lib/localtime";
+import { hhmm } from "@/lib/freetime";
 
 // A want-to-book item: lighter than a booking, with a "booked it" promote action.
 export function PlanCard({
@@ -16,14 +17,23 @@ export function PlanCard({
 }) {
   const meta = CATEGORY_META[plan.category];
   const price = formatMoney(plan.amount, plan.currency);
-  const roughTiming =
-    plan.eventAt && !plan.eventAt.startsWith("9999")
-      ? localDate(plan.eventAt).toLocaleDateString("en-US", {
+  // A plan pinned to a day says the day. Only a genuinely vague one — a month,
+  // or nothing at all — falls back to "Sep 2026".
+  const dated = /T\d{2}:\d{2}/.test(plan.eventAt) && !plan.eventAt.startsWith("9999");
+  const roughTiming = plan.eventAt.startsWith("9999")
+    ? null
+    : dated
+      ? `${localDate(plan.eventAt).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })} · ${hhmm(localMins(plan.eventAt))}`
+      : localDate(plan.eventAt).toLocaleDateString("en-US", {
           month: "short",
           year: "numeric",
           timeZone: "UTC",
-        })
-      : null;
+        });
 
   return (
     <div

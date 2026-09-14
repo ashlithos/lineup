@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { googleAccessToken } from "@/lib/google";
 import { extractCandidatesFromText } from "@/lib/extractServer";
 import { isCancellation, sameBooking } from "@/lib/cancelMatch";
+import { getIgnoredEmails } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -80,7 +81,11 @@ export async function POST(req: Request) {
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=15`,
     { headers: auth },
   ).then((r) => r.json())) as { messages?: { id: string }[] };
-  const ids = (list.messages ?? []).map((m) => m.id).slice(0, 15);
+  // Anything whose booking you deleted is left where it is.
+  const ignored = await getIgnoredEmails();
+  const found = (list.messages ?? []).map((m) => m.id);
+  const ids = found.filter((id) => !ignored.has(id)).slice(0, 15);
+  const leftAlone = found.length - ids.length;
 
   // Existing bookings so we never add a duplicate.
   const existing = (await fetch(`${origin}/api/bookings`)
@@ -185,5 +190,11 @@ export async function POST(req: Request) {
     added.push(c.title);
   }
 
-  return NextResponse.json({ scanned: ids.length, added, cancelled, skipped });
+  return NextResponse.json({
+    scanned: ids.length,
+    added,
+    cancelled,
+    skipped,
+    leftAlone,
+  });
 }

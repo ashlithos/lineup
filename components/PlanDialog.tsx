@@ -11,6 +11,7 @@ import {
 } from "@/lib/types";
 import { MonthPicker } from "@/components/MonthPicker";
 import { localDate, localDayMs } from "@/lib/localtime";
+import { PlanTimetable } from "@/components/PlanTimetable";
 import type { Trip } from "@/lib/trips";
 
 const CHECKLIST_SUGGESTIONS = ["Flights", "Hotel", "Activities", "Rental car"];
@@ -218,7 +219,9 @@ export function PlanDialog({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-raised p-5 sm:rounded-2xl"
+        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-raised p-5 sm:rounded-2xl ${
+          onTrip ? "max-w-md lg:max-w-4xl" : "max-w-md"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -234,6 +237,13 @@ export function PlanDialog({
           </button>
         </div>
 
+        <div
+          className={
+            onTrip
+              ? "lg:grid lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start lg:gap-6"
+              : undefined
+          }
+        >
         <div className="space-y-3.5">
           <div>
             <label className={label}>What do you want to book?</label>
@@ -562,6 +572,22 @@ export function PlanDialog({
               placeholder="Why, who's coming, when tickets drop…"
             />
           </div>
+        </div>
+
+          {onTrip && (
+            <div className="mt-4 lg:mt-0">
+              <PlanTimetable
+                bookings={trip!.bookings}
+                day={day}
+                time={time}
+                durationMin={durationMin ? Number(durationMin) : 90}
+                onPick={(d, t) => {
+                  setDay(d);
+                  if (t) setTime(t);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <button

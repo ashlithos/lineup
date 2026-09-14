@@ -43,6 +43,8 @@ export function ToBookList({
   // Expanded by default — this is work waiting to be done — but the choice
   // sticks once made, since a long list is worth folding away between trips.
   const [open, setOpen] = useState(true);
+  // Which row has been tapped once. Nothing goes on a single tap.
+  const [confirming, setConfirming] = useState<string | null>(null);
   useEffect(() => {
     setOpen(window.localStorage.getItem(OPEN_KEY) !== "0");
   }, []);
@@ -153,12 +155,35 @@ export function ToBookList({
                   {/* Plans change. Dropping one shouldn't mean opening it,
                       finding the delete, and confirming. */}
                   <button
-                    onClick={() => onDismiss(b)}
-                    aria-label={`Dismiss "${b.title}"`}
-                    title="Not doing this"
-                    className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-paper hover:text-ink"
+                    onClick={() => {
+                      if (confirming !== b.id) {
+                        setConfirming(b.id);
+                        setTimeout(
+                          () => setConfirming((c) => (c === b.id ? null : c)),
+                          5000,
+                        );
+                        return;
+                      }
+                      setConfirming(null);
+                      onDismiss(b);
+                    }}
+                    aria-label={
+                      confirming === b.id
+                        ? `Tap again to dismiss "${b.title}"`
+                        : `Dismiss "${b.title}"`
+                    }
+                    title={confirming === b.id ? "Tap again to dismiss" : "Not doing this"}
+                    className={`mt-0.5 shrink-0 rounded-full transition-colors ${
+                      confirming === b.id
+                        ? "bg-urgent-soft px-2 py-0.5 text-[11px] font-medium text-urgent"
+                        : "grid size-6 place-items-center text-ink-faint hover:bg-paper hover:text-ink"
+                    }`}
                   >
-                    <i className="ti ti-x text-[14px]" aria-hidden="true" />
+                    {confirming === b.id ? (
+                      "Sure?"
+                    ) : (
+                      <i className="ti ti-x text-[14px]" aria-hidden="true" />
+                    )}
                   </button>
                 </li>
               ))}

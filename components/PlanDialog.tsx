@@ -91,6 +91,7 @@ export function PlanDialog({
   const [durationMin, setDurationMin] = useState("");
   const [day, setDay] = useState("");
   const [time, setTime] = useState("11:00");
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   // "9999-01-01…" is the sentinel for undated plan items.
   const isUndated = (iso: string) => iso.startsWith("9999");
@@ -117,6 +118,7 @@ export function PlanDialog({
       (iso && !isUndated(iso)
         ? trips?.find((t) => !t.isOther && tripDayList(t).includes(iso.slice(0, 10)))
         : undefined);
+    setConfirmRemove(false);
     setTripKey(onTrip?.key ?? "");
     const hasDate = !!iso && !isUndated(iso);
     setDay(hasDate ? iso.slice(0, 10) : "");
@@ -614,10 +616,19 @@ export function PlanDialog({
 
         {editing && plan && (
           <button
-            onClick={() => onDelete(plan.id)}
-            className="mt-3 block w-full text-center text-[13px] text-urgent hover:underline"
+            onClick={() => {
+              if (!confirmRemove) {
+                setConfirmRemove(true);
+                setTimeout(() => setConfirmRemove(false), 5000);
+                return;
+              }
+              onDelete(plan.id);
+            }}
+            className={`mt-3 block w-full text-center text-[13px] text-urgent ${
+              confirmRemove ? "font-semibold" : "hover:underline"
+            }`}
           >
-            Remove from plan
+            {confirmRemove ? "Tap again to remove" : "Remove from plan"}
           </button>
         )}
       </div>

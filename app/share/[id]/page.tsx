@@ -189,11 +189,17 @@ export default async function SharePage({
   }
 
   const { name, bookings } = trip;
-  const gaps = tripDays(bookings).filter((d) => d.gap);
+  // A shared plan answers three questions: which day, which city, and how you
+  // get between them. Where someone eats and what they do with an afternoon is
+  // theirs — it isn't withheld so much as not the point of sharing.
+  const shared = bookings.filter(
+    (b) => b.category === "hotel" || isTransport(b.category),
+  );
+  const gaps = tripDays(shared).filter((d) => d.gap);
   const cover = bookings.find((b) => b.imageUrl && b.imageUrl.trim())?.imageUrl;
-  const nights = totalNights(bookings);
+  const nights = totalNights(shared);
   // Chain multi-reservation stays first, then merge duplicate flights/tickets.
-  const stays = collapseStays(bookings);
+  const stays = collapseStays(shared);
   const items = collapseFlights(
     stays.filter((x): x is Booking => !isFlightGroup(x)),
   ).concat(stays.filter(isFlightGroup));
@@ -202,7 +208,7 @@ export default async function SharePage({
     const bv = isFlightGroup(b) ? b.lead.eventAt : b.eventAt;
     return av.localeCompare(bv);
   });
-  const rangeText = rangeLabel(bookings);
+  const rangeText = rangeLabel(shared.length ? shared : bookings);
 
   return (
     <main className="min-h-screen bg-paper px-5 py-12">
@@ -256,12 +262,12 @@ export default async function SharePage({
               <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-accent">
                 Open time each day
               </h2>
-              <ShareTimetable bookings={bookings} />
+              <ShareTimetable bookings={shared} />
             </section>
           ) : (
           <section>
             <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-ok">
-              Booked
+              Where and how
             </h2>
             <ul className="-mx-2 space-y-1">
               {items.map((it) => {

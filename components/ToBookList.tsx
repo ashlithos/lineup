@@ -73,9 +73,11 @@ export function ToBookList({
         <button
           onClick={toggle}
           aria-expanded={open}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left"
         >
-          <h3 className="text-[14px] font-semibold text-ink">Still to book</h3>
+          <span role="heading" aria-level={2} className="text-[14px] font-semibold text-ink">
+            Still to book
+          </span>
           <span className="rounded-full border border-dashed border-accent px-2 py-0.5 text-[11px] font-medium text-accent">
             {items.length} {items.length === 1 ? "item" : "items"}
           </span>
@@ -96,7 +98,7 @@ export function ToBookList({
         {/* Deciding and booking are different jobs, and often different people. */}
         <button
           onClick={() => onAssign(items)}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-accent bg-raised px-3 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-accent bg-raised px-3.5 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
         >
           <i className="ti ti-send text-[14px]" aria-hidden="true" />
           Assign
@@ -118,7 +120,7 @@ export function ToBookList({
                     onClick={() => onBooked(b)}
                     aria-label={`Mark "${b.title}" as booked`}
                     title="Mark as booked"
-                    className="mt-0.5 size-[18px] shrink-0 rounded border-[1.5px] border-line-strong transition-colors hover:border-ok hover:bg-ok-soft"
+                    className="tap mt-0.5 size-[18px] shrink-0 rounded border-[1.5px] border-line-strong transition-colors hover:border-ok hover:bg-ok-soft"
                   />
                   <button
                     onClick={() => onOpen(b)}
@@ -176,7 +178,7 @@ export function ToBookList({
                     className={`mt-0.5 shrink-0 rounded-full transition-colors ${
                       confirming === b.id
                         ? "bg-urgent-soft px-2 py-0.5 text-[11px] font-medium text-urgent"
-                        : "grid size-6 place-items-center text-ink-faint hover:bg-paper hover:text-ink"
+                        : "tap grid size-6 place-items-center text-ink-faint hover:bg-paper hover:text-ink"
                     }`}
                   >
                     {confirming === b.id ? (

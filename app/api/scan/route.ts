@@ -28,8 +28,36 @@ function gmailText(p?: GmailPart): string {
   return "";
 }
 
-const subjectOf = (p?: GmailPart) =>
-  p?.headers?.find((h) => h.name.toLowerCase() === "subject")?.value ?? "";
+const headerOf = (p: GmailPart | undefined, name: string) =>
+  p?.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? "";
+const subjectOf = (p?: GmailPart) => headerOf(p, "subject");
+
+/**
+ * What the model actually reads. Two things the raw body gets wrong:
+ *
+ * The subject line is the clearest statement a confirmation email makes —
+ * "Your reservation at Yu Seafood Yorkdale is confirmed" — and it was never
+ * sent. Bodies open with whatever the template felt like ("Your class is
+ * booked"), which is worse than nothing.
+ *
+ * And a tracking URL can run to 700 characters. One Google Reserve email is
+ * 2,600 characters of which 2,000 are four such links: the booking drowns in
+ * them. Long ones go; short ones stay, because a cancellation link is worth
+ * keeping.
+ */
+function emailForModel(p: GmailPart | undefined): string {
+  const body = gmailText(p)
+    .replace(/<?(https?:\/\/\S{120,})>?/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+  const head = [
+    subjectOf(p) && `Subject: ${subjectOf(p)}`,
+    headerOf(p, "date") && `Received: ${headerOf(p, "date")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return head ? `${head}\n\n${body}` : body;
+}
 
 const key = (title: string, eventAt: string) =>
   `${title.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 18)}|${eventAt.slice(0, 10)}`;
@@ -74,7 +102,7 @@ export async function POST(req: Request) {
         { headers: auth },
       ).then((r) => r.json())) as { payload?: GmailPart };
       const subject = subjectOf(m.payload);
-      const cands = await extractCandidatesFromText(gmailText(m.payload));
+      const cands = await extractCandidatesFromText(emailForModel(m.payload));
       const cancels = isCancellation(subject);
       // An email that yielded nothing is the interesting case: it matched the
       // search, so it looked like a booking, and then vanished without a word.

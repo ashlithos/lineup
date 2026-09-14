@@ -7,6 +7,7 @@ import {
   type BookingRow,
 } from "@/lib/supabase";
 import type { Booking } from "@/lib/types";
+import { gmailIdOf, ignoreEmail } from "@/lib/config";
 
 export async function PATCH(
   req: Request,
@@ -37,7 +38,16 @@ export async function DELETE(
     return NextResponse.json({ error: "supabase-not-configured" }, { status: 501 });
   }
   const { id } = await params;
+  // Remember the email this came from before the row goes, so the next scan
+  // doesn't hand it back. Deleting is the clearest "no" the app ever gets.
+  const { data: row } = await supabase
+    .from(TABLE)
+    .select("source_url")
+    .eq("id", id)
+    .maybeSingle();
+  const emailId = gmailIdOf((row as { source_url?: string } | null)?.source_url);
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  if (emailId) await ignoreEmail(emailId);
+  return NextResponse.json({ ok: true, forgot: emailId ?? undefined });
 }

@@ -891,6 +891,7 @@ export default function Home() {
       </div>
 
       <AddBookingDialog
+        trips={allTrips}
         open={dialogOpen}
         booking={editing}
         prefill={addPrefill}

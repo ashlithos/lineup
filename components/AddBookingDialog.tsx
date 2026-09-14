@@ -68,6 +68,7 @@ export function AddBookingDialog({
   const [cancelUrl, setCancelUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [tripName, setTripName] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -85,6 +86,7 @@ export function AddBookingDialog({
     setCancelUrl(booking?.cancelUrl ?? "");
     setNotes(booking?.notes ?? "");
     setTripName(booking?.tripName ?? "");
+    setConfirmDelete(false);
   }, [open, booking, prefill]);
 
   useEffect(() => {
@@ -463,10 +465,19 @@ export function AddBookingDialog({
               Mark as cancelled
             </button>
             <button
-              onClick={() => onDelete(booking.id)}
-              className="text-[13px] text-urgent hover:underline"
+              onClick={() => {
+                if (!confirmDelete) {
+                  setConfirmDelete(true);
+                  setTimeout(() => setConfirmDelete(false), 5000);
+                  return;
+                }
+                onDelete(booking.id);
+              }}
+              className={`text-[13px] text-urgent ${
+                confirmDelete ? "font-semibold" : "hover:underline"
+              }`}
             >
-              Delete
+              {confirmDelete ? "Tap again to delete" : "Delete"}
             </button>
           </div>
         )}

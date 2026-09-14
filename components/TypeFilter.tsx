@@ -31,7 +31,10 @@ export function TypeFilter({
         <button
           key={c}
           className={chip(value === c)}
-          onClick={() => onChange(c)}
+          // Tapping the chip that's already on takes it off — a filter you
+          // can't release from where you set it is a trap.
+          onClick={() => onChange(value === c ? "all" : c)}
+          title={value === c ? "Tap again to show everything" : undefined}
         >
           <span>{CATEGORY_META[c].emoji}</span>
           {CATEGORY_META[c].plural}

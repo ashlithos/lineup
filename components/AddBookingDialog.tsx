@@ -10,6 +10,7 @@ import {
 } from "@/lib/types";
 import { nightsBetween, formatEventDate } from "@/lib/urgency";
 import { cancelDeadlineGcalUrl, tripGcalUrl } from "@/lib/calendar";
+import type { Trip } from "@/lib/trips";
 
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
@@ -40,10 +41,13 @@ export function AddBookingDialog({
   onDelete,
   onMarkCancelled,
   prefill,
+  trips,
 }: {
   open: boolean;
   booking: Booking | null;
   prefill?: Partial<Booking> | null;
+  /** Trips this booking could belong to, for when grouping gets it wrong. */
+  trips?: Trip[];
   onClose: () => void;
   onSave: (draft: Draft, id: string | null) => void;
   onDelete: (id: string) => void;
@@ -63,6 +67,7 @@ export function AddBookingDialog({
   const [cancelBy, setCancelBy] = useState("");
   const [cancelUrl, setCancelUrl] = useState("");
   const [notes, setNotes] = useState("");
+  const [tripName, setTripName] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +84,7 @@ export function AddBookingDialog({
     setCancelBy(toLocalInput(booking?.cancelBy));
     setCancelUrl(booking?.cancelUrl ?? "");
     setNotes(booking?.notes ?? "");
+    setTripName(booking?.tripName ?? "");
   }, [open, booking, prefill]);
 
   useEffect(() => {
@@ -126,6 +132,7 @@ export function AddBookingDialog({
         cancelBy: refundable ? fromLocalInput(cancelBy, booking?.cancelBy) : undefined,
         cancelUrl: cancelUrl.trim() || undefined,
         notes: notes.trim() || undefined,
+        tripName: tripName || undefined,
         kept: booking?.kept,
       },
       booking?.id ?? null,
@@ -252,6 +259,45 @@ export function AddBookingDialog({
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Lisbon"
               />
+            </div>
+          )}
+
+          {(trips ?? []).filter((t) => !t.isOther).length > 0 && (
+            <div>
+              <label className={label}>Part of a trip?</label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTripName("")}
+                  className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                    !tripName
+                      ? "border-ink bg-ink text-paper"
+                      : "border-line bg-paper text-ink-soft hover:border-line-strong"
+                  }`}
+                >
+                  Work it out
+                </button>
+                {(trips ?? [])
+                  .filter((t) => !t.isOther)
+                  .map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setTripName(t.label)}
+                      className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                        tripName === t.label
+                          ? "border-ink bg-ink text-paper"
+                          : "border-line bg-paper text-ink-soft hover:border-line-strong"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+              </div>
+              <p className="mt-1 text-[12px] text-ink-faint">
+                Trips are worked out from dates and places. Say so here when
+                that gets it wrong.
+              </p>
             </div>
           )}
 

@@ -36,7 +36,15 @@ function cityOf(loc?: string): string | null {
   return city || null;
 }
 
-const norm = (s: string) => s.toLowerCase().trim();
+// Montréal and Montreal are the same city, and an email will spell it either
+// way depending on who sent it. Fold accents before comparing, or a dinner on
+// Rue Milton never finds the hotel three streets away.
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
 
 // The destination cities a trip actually visits — taken from its lodging/event
 // locations (flight "locations" are airport codes, too noisy to name a city).

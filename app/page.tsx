@@ -387,15 +387,21 @@ export default function Home() {
     setPlanDialogOpen(true);
   };
   const handleSavePlan = (draft: Draft, id: string | null) => {
-    // Pinned to a day of a real trip, it stops being a someday-wish: it's a
-    // dated thing that still needs booking, so it belongs on the trip itself.
-    const pinned = !!draft.tripName && !draft.eventAt.startsWith("9999");
-    if (id) update(id, pinned ? { ...draft, status: "tobook" } : draft);
-    else add({ ...draft, status: pinned ? "tobook" : "plan" });
+    // A day and a time make it a dated thing that still needs booking, so it
+    // belongs on the timetable rather than the someday list. The plan dialog
+    // writes exactly this shape for a dated item, and a rough month as UTC
+    // midnight, so the two can't be confused.
+    const dated = /T\d{2}:\d{2}:00$/.test(draft.eventAt);
+    if (id) update(id, dated ? { ...draft, status: "tobook" } : draft);
+    else add({ ...draft, status: dated ? "tobook" : "plan" });
     setPlanDialogOpen(false);
-    if (pinned) {
+    if (dated) {
       setRail("forward");
-      setFlash(`Added to ${draft.tripName} — it's in "Still to book".`);
+      setFlash(
+        draft.tripName
+          ? `Added to ${draft.tripName} — it's in "Still to book".`
+          : `Added — it's in "Still to book".`,
+      );
       setTimeout(() => setFlash(null), 3000);
     }
   };

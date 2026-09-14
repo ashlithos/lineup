@@ -118,8 +118,9 @@ export function PlanDialog({
         ? trips?.find((t) => !t.isOther && tripDayList(t).includes(iso.slice(0, 10)))
         : undefined);
     setTripKey(onTrip?.key ?? "");
-    setDay(onTrip && iso ? iso.slice(0, 10) : "");
-    setTime(onTrip && iso ? iso.slice(11, 16) : "11:00");
+    const hasDate = !!iso && !isUndated(iso);
+    setDay(hasDate ? iso.slice(0, 10) : "");
+    setTime(hasDate && iso.length > 15 ? iso.slice(11, 16) : "11:00");
   }, [open, plan, trips]);
 
   const addItem = (raw: string) => {
@@ -176,8 +177,12 @@ export function PlanDialog({
   const trip = tripOptions.find((t) => t.key === tripKey);
   const days = trip ? tripDayList(trip) : [];
   const onTrip = !!trip;
+  // A plan that already has a day keeps it. Until now, opening one and saving
+  // without a trip selected quietly replaced its date with a rough month —
+  // which took it off the timetable it was sitting on.
+  const dated = onTrip || !!day;
 
-  const canSave = title.trim() !== "" && (!onTrip || !!day);
+  const canSave = title.trim() !== "" && (!dated || !!day);
 
   const handleSave = () => {
     if (!canSave) return;
@@ -187,7 +192,7 @@ export function PlanDialog({
         category,
         location: location.trim() || undefined,
         cancelUrl: bookUrl.trim() || undefined,
-        durationMin: onTrip && durationMin ? Number(durationMin) : plan?.durationMin,
+        durationMin: dated && durationMin ? Number(durationMin) : plan?.durationMin,
         // A budget is no longer asked for here, but one already written down
         // shouldn't be thrown away by an edit.
         amount: plan?.amount,
@@ -198,8 +203,8 @@ export function PlanDialog({
         checklist:
           category === "trip" && checklist.length ? checklist : undefined,
         companions: companions.length ? companions : undefined,
-        tripName: onTrip ? trip!.label : undefined,
-        eventAt: onTrip
+        tripName: onTrip ? trip!.label : plan?.tripName,
+        eventAt: dated
           ? `${day}T${time}:00`
           : roughMonth
             ? `${roughMonth}-01T00:00:00.000Z`
@@ -465,22 +470,31 @@ export function PlanDialog({
             </div>
           )}
 
-          {onTrip ? (
+          {dated ? (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={label}>Which day?</label>
-                <select
-                  className={field}
-                  value={day}
-                  onChange={(e) => setDay(e.target.value)}
-                >
-                  <option value="">Pick a day</option>
-                  {days.map((d) => (
-                    <option key={d} value={d}>
-                      {dayOption(d)}
-                    </option>
-                  ))}
-                </select>
+                {onTrip ? (
+                  <select
+                    className={field}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                  >
+                    <option value="">Pick a day</option>
+                    {days.map((d) => (
+                      <option key={d} value={d}>
+                        {dayOption(d)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="date"
+                    className={field}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                  />
+                )}
               </div>
               <div>
                 <label className={label}>What time?</label>

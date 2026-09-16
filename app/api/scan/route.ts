@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { googleAccessToken } from "@/lib/google";
 import { extractCandidatesFromText } from "@/lib/extractServer";
 import { isCancellation, sameBooking } from "@/lib/cancelMatch";
+import { sameOuting } from "@/lib/samePlace";
 import { getIgnoredEmails } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +61,6 @@ function emailForModel(p: GmailPart | undefined): string {
   return head ? `${head}\n\n${body}` : body;
 }
 
-const key = (title: string, eventAt: string) =>
-  `${title.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 18)}|${eventAt.slice(0, 10)}`;
 
 export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
@@ -95,10 +94,19 @@ export async function POST(req: Request) {
     id: string;
     title: string;
     vendor?: string;
+    category?: string;
     eventAt: string;
     status: string;
   }[];
-  const seen = new Set(existing.map((b) => key(b.title, b.eventAt)));
+  // Everything already on file, plus everything this scan adds as it goes: one
+  // dinner can arrive as a booking, a confirmation and a reminder in the same
+  // pass, and all three would otherwise land.
+  const onFile = existing.map((b) => ({
+    title: b.title,
+    vendor: b.vendor,
+    category: b.category,
+    eventAt: b.eventAt,
+  }));
 
   const perEmail = await Promise.all(
     ids.map(async (id) => {
@@ -157,10 +165,10 @@ export async function POST(req: Request) {
       continue;
     }
 
-    // Dedup only against already-saved bookings — never merge two candidates
-    // from this scan, since same-route/same-day can be two real reservations
-    // (e.g. two Southwest confirmations).
-    if (seen.has(key(c.title, c.eventAt))) {
+    // Same place, same day, same sort of thing — one outing, however
+    // differently each email chose to name it. Two real reservations at one
+    // restaurant in a day survive this, because their times differ.
+    if (onFile.some((b) => sameOuting(b, { ...c, vendor: c.vendor ?? undefined }))) {
       skipped.push({ subject, why: "already on file" });
       continue;
     }
@@ -188,6 +196,12 @@ export async function POST(req: Request) {
       }),
     });
     added.push(c.title);
+    onFile.push({
+      title: c.title,
+      vendor: c.vendor ?? undefined,
+      category: c.category,
+      eventAt: c.eventAt,
+    });
   }
 
   return NextResponse.json({

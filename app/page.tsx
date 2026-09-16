@@ -1004,6 +1004,7 @@ export default function Home() {
         bookings={bookings}
         onClose={() => setPlanCheckOpen(false)}
         onOpenBooking={openEdit}
+        onDelete={remove}
       />
 
       {shareTripObj && (

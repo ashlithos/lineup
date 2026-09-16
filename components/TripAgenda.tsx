@@ -51,7 +51,7 @@ function RouteStrip({ booking }: { booking: Booking }) {
     <span className="flex items-center gap-2.5">
       <span className="text-center">
         <span className="block font-mono text-[13px] font-semibold text-ink">{dep}</span>
-        {from && <span className="block text-[10px] text-ink-faint">{from}</span>}
+        {from && <span className="block text-[11px] text-ink-faint">{from}</span>}
       </span>
       <span className="relative flex-1">
         <span className="block h-px bg-line-strong" aria-hidden="true" />
@@ -63,7 +63,7 @@ function RouteStrip({ booking }: { booking: Booking }) {
       </span>
       <span className="text-center">
         <span className="block font-mono text-[13px] font-semibold text-ink">{arr}</span>
-        {to && <span className="block text-[10px] text-ink-faint">{to}</span>}
+        {to && <span className="block text-[11px] text-ink-faint">{to}</span>}
       </span>
     </span>
   );

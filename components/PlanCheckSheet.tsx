@@ -47,11 +47,13 @@ export function PlanCheckSheet({
   bookings,
   onClose,
   onOpenBooking,
+  onDelete,
 }: {
   open: boolean;
   bookings: Booking[];
   onClose: () => void;
   onOpenBooking: (b: Booking) => void;
+  onDelete: (id: string) => void;
 }) {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [aiState, setAiState] = useState<"idle" | "running" | "done" | "off">(
@@ -59,6 +61,9 @@ export function PlanCheckSheet({
   );
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [votes, setVotes] = useState<Record<string, VoteRecord>>({});
+  // Deleting from here is one tap, so it asks first — same bargain as
+  // everywhere else a booking can disappear.
+  const [confirmDrop, setConfirmDrop] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -246,10 +251,57 @@ export function PlanCheckSheet({
                             rel="noreferrer"
                             aria-label="Open the confirmation email"
                             title="Open the confirmation email"
-                            className="ml-1 grid size-6 place-items-center rounded-md text-ink-faint transition-colors hover:bg-line hover:text-ink"
+                            className="tap ml-1 grid size-6 place-items-center rounded-md text-ink-faint transition-colors hover:bg-line hover:text-ink"
                           >
                             <i className="ti ti-mail text-[13px]" aria-hidden="true" />
                           </a>
+                        )}
+                        {/* A duplicate has exactly one fix. Clearing four of
+                            them shouldn't mean eight trips through the edit
+                            dialog. */}
+                        {f.id.startsWith("dupe") && (
+                          <button
+                            onClick={() => {
+                              if (confirmDrop !== id) {
+                                setConfirmDrop(id);
+                                setTimeout(
+                                  () =>
+                                    setConfirmDrop((c) => (c === id ? null : c)),
+                                  5000,
+                                );
+                                return;
+                              }
+                              setConfirmDrop(null);
+                              onDelete(id);
+                              setFindings((prev) =>
+                                prev.filter((x) => !x.bookingIds.includes(id)),
+                              );
+                            }}
+                            aria-label={
+                              confirmDrop === id
+                                ? `Tap again to delete "${b.title}"`
+                                : `Delete "${b.title}"`
+                            }
+                            title={
+                              confirmDrop === id
+                                ? "Tap again to delete"
+                                : "Delete this copy"
+                            }
+                            className={`tap ml-2 rounded-md transition-colors ${
+                              confirmDrop === id
+                                ? "bg-urgent-soft px-2 py-0.5 text-[11px] font-medium text-urgent"
+                                : "grid size-6 place-items-center text-ink-faint hover:bg-line hover:text-urgent"
+                            }`}
+                          >
+                            {confirmDrop === id ? (
+                              "Sure?"
+                            ) : (
+                              <i
+                                className="ti ti-trash text-[13px]"
+                                aria-hidden="true"
+                              />
+                            )}
+                          </button>
                         )}
                       </span>
                     );
@@ -274,7 +326,7 @@ export function PlanCheckSheet({
 
         <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
           <p className="text-[11px] text-ink-faint">
-            Nothing here changes your bookings.
+            Nothing here changes a booking unless you delete a duplicate.
           </p>
           {(dismissed.size > 0 ||
             Object.values(votes).some((v) => v.vote === "down")) && (

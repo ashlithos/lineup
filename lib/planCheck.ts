@@ -1,5 +1,6 @@
 import { isTransport, type Booking } from "./types";
 import { localDate, localDayMs } from "./localtime";
+import { sameOuting } from "./samePlace";
 
 // Deterministic checks over the itinerary. These are the ones that must never
 // be wrong — deadlines, overlaps, missing data — so they're plain code, not a
@@ -253,6 +254,48 @@ export function runRules(bookings: Booking[]): Finding[] {
         source: "rules",
       });
     }
+  }
+
+  // 6d. The same outing under three names. A restaurant sends the booking, the
+  //      confirmation and a reminder, and each subject line names the place
+  //      differently — so there's no shared code (6a), usually no price (6b),
+  //      and it isn't a journey (6c). Match on the words that name the place.
+  //
+  //      Four copies of one dinner are one problem, not six pairs of it, so
+  //      they're grouped and reported once.
+  const outings = live.filter((b) => !isTransport(b.category) && !dupedIds.has(b.id));
+  const clusters: Booking[][] = [];
+  for (const b of outings) {
+    const home = clusters.find((c) => c.some((x) => sameOuting(x, b)));
+    if (home) home.push(b);
+    else clusters.push([b]);
+  }
+  for (const group of clusters) {
+    if (group.length < 2) continue;
+    // Keep the copy that knows the most: a real time first, then whatever
+    // detail came with it. That's the one worth keeping.
+    const detail = (b: Booking) =>
+      (b.eventAt.slice(11, 16) === "00:00" ? 0 : 4) +
+      (b.location ? 1 : 0) +
+      (b.amount != null ? 1 : 0) +
+      (b.sourceUrl ? 1 : 0) +
+      (b.notes ? 1 : 0);
+    const keep = [...group].sort((a, b) => detail(b) - detail(a))[0];
+    found.push({
+      id: `dupeouting:${group.map((b) => b.id).sort().join("|")}`,
+      severity: "check",
+      title:
+        group.length === 2
+          ? `"${keep.title}" is on here twice`
+          : `"${keep.title}" is on here ${group.length} times`,
+      detail: `${group
+        .map((b) => `"${b.title}"`)
+        .join(", ")} are all the same place on ${fmt(
+        keep.eventAt,
+      )} — one reservation that sent more than one email. "${keep.title}" has the most detail, so keep that one and drop the rest.`,
+      bookingIds: [keep.id, ...group.filter((b) => b.id !== keep.id).map((b) => b.id)],
+      source: "rules",
+    });
   }
 
   // 7. A trip that lands somewhere but never leaves (or vice versa).

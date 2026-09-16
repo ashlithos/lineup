@@ -157,7 +157,7 @@ export function WeekGrid({
   return (
     <section className="rounded-xl border border-line bg-raised p-3 md:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="text-[13px] text-ink-soft">
+        <p className="hidden text-[13px] text-ink-soft sm:block">
           Open time each day, counted to {hhmm(PLAN_END)}
         </p>
         <div className="flex items-center gap-1.5">
@@ -167,7 +167,8 @@ export function WeekGrid({
               className="flex items-center gap-1.5 rounded-full border border-accent bg-raised px-3 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
             >
               <i className="ti ti-plus text-[14px]" aria-hidden="true" />
-              Add a plan
+              <span className="hidden sm:inline">Add a plan</span>
+              <span className="sm:hidden">Plan</span>
             </button>
           )}
           <button
@@ -178,7 +179,8 @@ export function WeekGrid({
               className={`ti text-[14px] ${copied ? "ti-check text-ok" : "ti-clipboard"}`}
               aria-hidden="true"
             />
-            {copied ? "Copied" : "Copy table"}
+            <span className="hidden sm:inline">{copied ? "Copied" : "Copy table"}</span>
+            <span className="sm:hidden">{copied ? "Copied" : "Copy"}</span>
           </button>
           <button
             onClick={exportSheet}
@@ -186,7 +188,10 @@ export function WeekGrid({
             className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50"
           >
             <i className="ti ti-table-export text-[14px]" aria-hidden="true" />
-            {exporting ? "Building sheet…" : "Export to Google Sheets"}
+            <span className="hidden sm:inline">
+              {exporting ? "Building sheet…" : "Export to Google Sheets"}
+            </span>
+            <span className="sm:hidden">{exporting ? "…" : "Sheets"}</span>
           </button>
         </div>
       </div>

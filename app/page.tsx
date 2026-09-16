@@ -445,13 +445,13 @@ export default function Home() {
   const handleBooked = (b: Booking) => openEdit(b);
 
   return (
-    <div className="mx-auto min-h-full w-full max-w-md px-5 pb-28 pt-8 md:max-w-3xl md:px-6 md:pt-10 lg:max-w-6xl lg:px-8 lg:pt-12 xl:max-w-7xl 2xl:px-12">
+    <div className="mx-auto min-h-full w-full max-w-md px-5 pb-28 pt-5 md:max-w-3xl md:px-6 md:pt-10 lg:max-w-6xl lg:px-8 lg:pt-12 xl:max-w-7xl 2xl:px-12">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-4xl font-semibold leading-none tracking-tight text-ink">
+          <h1 className="text-3xl font-semibold leading-none tracking-tight text-ink md:text-4xl">
             LineUp
           </h1>
-          <p className="mt-1.5 text-[13px] text-ink-soft">
+          <p className="mt-1.5 hidden text-[13px] text-ink-soft sm:block">
             Everything you&apos;re looking forward to
           </p>
         </div>
@@ -684,7 +684,7 @@ export default function Home() {
         ) : rail === "forward" ? (
           <div>
             {filter === "all" && (
-              <div className="mb-7 space-y-3">
+              <div className="mb-5 space-y-2 md:mb-7 md:space-y-3">
                 <YearDensity
                   bookings={items}
                   selectedWeek={weekFilter}
@@ -692,7 +692,7 @@ export default function Home() {
                 />
                 <button
                   onClick={() => setPlanCheckOpen(true)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-line bg-raised px-4 py-3 text-left transition-colors hover:border-line-strong md:px-5"
+                  className="flex w-full items-center gap-3 rounded-2xl border border-line bg-raised px-4 py-2.5 text-left transition-colors hover:border-line-strong md:px-5 md:py-3"
                 >
                   <i
                     className="ti ti-shield-check text-[18px] text-ink-faint"
@@ -702,7 +702,7 @@ export default function Home() {
                     <span className="block text-[14px] font-medium text-ink">
                       Check my plan
                     </span>
-                    <span className="mt-0.5 block text-[12px] text-ink-faint">
+                    <span className="mt-0.5 hidden text-[12px] text-ink-faint sm:block">
                       Look for conflicts, duplicates and missing deadlines
                     </span>
                   </span>
@@ -773,7 +773,11 @@ export default function Home() {
                               aria-hidden="true"
                             />
                           )}
-                          <span className="min-w-0 truncate font-serif text-[27px] font-bold leading-[1.15] tracking-[-0.01em] text-ink md:text-[30px]">
+                          <span
+                            role="heading"
+                            aria-level={2}
+                            className="min-w-0 truncate font-serif text-[27px] font-bold leading-[1.15] tracking-[-0.01em] text-ink md:text-[30px]"
+                          >
                             {trip.label}
                           </span>
                           {!trip.isOther && (
@@ -798,7 +802,7 @@ export default function Home() {
                       <button
                         onClick={() => openShare(trip)}
                         aria-label="Share trip"
-                        className="mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                        className="tap mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
                       >
                         <i
                           className="ti ti-share-2 text-[17px]"
@@ -809,7 +813,7 @@ export default function Home() {
                     <button
                       onClick={() => toggleTrip(trip.key)}
                       aria-label={open ? "Collapse trip" : "Expand trip"}
-                      className="mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                      className="tap mt-1 grid size-7 shrink-0 place-items-center text-ink-faint hover:text-ink"
                     >
                       <i
                         className={`ti ti-chevron-down text-[18px] transition-transform ${open ? "" : "-rotate-90"}`}
@@ -875,7 +879,7 @@ export default function Home() {
                                       return next;
                                     })
                                   }
-                                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                                  className={`rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
                                     active
                                       ? "bg-ink text-white"
                                       : "text-ink-soft hover:text-ink"
@@ -1000,6 +1004,7 @@ export default function Home() {
         bookings={bookings}
         onClose={() => setPlanCheckOpen(false)}
         onOpenBooking={openEdit}
+        onDelete={remove}
       />
 
       {shareTripObj && (

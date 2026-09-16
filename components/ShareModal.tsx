@@ -97,8 +97,8 @@ export function ShareModal({
           <div className="space-y-1.5">
             {(
               [
-                ["itinerary", "The itinerary", "Where you're staying, flights and dates."],
-                ["timetable", "The timetable", "Hour by hour, with open time each day."],
+                ["itinerary", "The itinerary", "Which day, which city, where you're staying and how you travel."],
+                ["timetable", "The timetable", "The same days, hour by hour, with the open time."],
               ] as const
             ).map(([id, title, desc]) => (
               <label
@@ -142,7 +142,7 @@ export function ShareModal({
               <span>
                 Your open hours each day.
                 <span className="mt-0.5 block text-[12px] text-ink-soft">
-                  No hotel names, prices or confirmations.
+                  No prices or confirmations — and no dining or activities.
                 </span>
               </span>
             </div>

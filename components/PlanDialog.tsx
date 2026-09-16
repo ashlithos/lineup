@@ -102,6 +102,9 @@ export function PlanDialog({
   const [day, setDay] = useState("");
   const [time, setTime] = useState("11:00");
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // On a phone the dialog is a column of fields you scroll past to reach the
+  // ones you want. The optional half waits until it's asked for.
+  const [showMore, setShowMore] = useState(false);
 
   // "9999-01-01…" is the sentinel for undated plan items.
   const isUndated = (iso: string) => iso.startsWith("9999");
@@ -129,6 +132,7 @@ export function PlanDialog({
         ? trips?.find((t) => !t.isOther && tripDayList(t).includes(iso.slice(0, 10)))
         : undefined);
     setConfirmRemove(false);
+    setShowMore(false);
     setTripKey(onTrip?.key ?? prefill?.tripKey ?? "");
     const hasDate = !!iso && !isUndated(iso);
     setDay(hasDate ? iso.slice(0, 10) : (prefill?.day ?? ""));
@@ -309,7 +313,7 @@ export function PlanDialog({
                 ))}
               </div>
               {onTrip && (
-                <p className="mt-1.5 text-[12px] text-ink-faint">
+                <p className="mt-1.5 hidden text-[12px] text-ink-faint sm:block">
                   Lands on that day&apos;s timetable under &ldquo;Still to
                   book&rdquo; — not booked, but real enough to plan around.
                 </p>
@@ -534,7 +538,7 @@ export function PlanDialog({
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-[12px] text-ink-faint">
+                <p className="mt-1 hidden text-[12px] text-ink-faint sm:block">
                   How much of the day it takes — this is the space it holds on
                   the timetable.
                 </p>
@@ -571,7 +575,21 @@ export function PlanDialog({
             </div>
           </div>
 
-          <div>
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="flex items-center gap-1.5 text-[13px] font-medium text-ink-soft sm:hidden"
+          >
+            <i
+              className={`ti ti-chevron-down text-[15px] transition-transform ${
+                showMore ? "rotate-180" : ""
+              }`}
+              aria-hidden="true"
+            />
+            {showMore ? "Fewer details" : "Where, links, notes"}
+          </button>
+
+          <div className={showMore ? "" : "hidden sm:block"}>
             <label className={label}>Where (optional)</label>
             <input
               className={field}
@@ -581,7 +599,7 @@ export function PlanDialog({
             />
           </div>
 
-          <div>
+          <div className={showMore ? "" : "hidden sm:block"}>
             <label className={label}>Where to book it (optional)</label>
             <input
               className={field}
@@ -592,7 +610,7 @@ export function PlanDialog({
             />
           </div>
 
-          <div>
+          <div className={showMore ? "" : "hidden sm:block"}>
             <label className={label}>Notes (optional)</label>
             <textarea
               className={`${field} min-h-[64px] resize-none`}

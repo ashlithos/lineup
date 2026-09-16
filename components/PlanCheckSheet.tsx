@@ -64,6 +64,7 @@ export function PlanCheckSheet({
   // Deleting from here is one tap, so it asks first — same bargain as
   // everywhere else a booking can disappear.
   const [confirmDrop, setConfirmDrop] = useState<string | null>(null);
+  const [confirmSweep, setConfirmSweep] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -225,6 +226,49 @@ export function PlanCheckSheet({
                 <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
                   {f.detail}
                 </p>
+                {/* A duplicate group has one obvious resolution: keep the copy
+                    that knows the most and drop the rest. Offering it as one
+                    action means four stray rows cost one tap, not eight. The
+                    chips below stay, for when the pick is wrong. */}
+                {f.id.startsWith("dupeouting:") && f.bookingIds.length > 1 && (
+                  <button
+                    onClick={() => {
+                      if (confirmSweep !== f.id) {
+                        setConfirmSweep(f.id);
+                        setTimeout(
+                          () =>
+                            setConfirmSweep((c) => (c === f.id ? null : c)),
+                          5000,
+                        );
+                        return;
+                      }
+                      setConfirmSweep(null);
+                      f.bookingIds.slice(1).forEach(onDelete);
+                      setFindings((prev) => prev.filter((x) => x.id !== f.id));
+                    }}
+                    className={`mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] font-medium transition-colors ${
+                      confirmSweep === f.id
+                        ? "bg-urgent text-white"
+                        : "border border-line-strong bg-raised text-ink hover:bg-line"
+                    }`}
+                  >
+                    <i
+                      className={`ti ${confirmSweep === f.id ? "ti-trash" : "ti-wand"} text-[14px]`}
+                      aria-hidden="true"
+                    />
+                    {confirmSweep === f.id
+                      ? `Tap again to delete ${
+                          f.bookingIds.length === 2
+                            ? "it"
+                            : f.bookingIds.length - 1
+                        }`
+                      : `Keep "${byId.get(f.bookingIds[0])?.title ?? "the best copy"}", delete the ${
+                          f.bookingIds.length === 2
+                            ? "duplicate"
+                            : `other ${f.bookingIds.length - 1}`
+                        }`}
+                  </button>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {f.bookingIds.map((id) => {
                     const b = byId.get(id);

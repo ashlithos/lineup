@@ -58,53 +58,54 @@ export function BookingCard({
           {meta.emoji}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-medium leading-snug text-ink">
+          <span className="block text-[15.5px] font-semibold leading-snug text-ink">
             {primary}
           </span>
           {secondary && (
-            <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
+            <span className="mt-0.5 block truncate text-[13px] text-ink-soft">
               {secondary}
             </span>
           )}
         </span>
-        {price && (
-          <span className="shrink-0 font-mono text-[16px] font-medium leading-tight text-ink">
-            {price}
-          </span>
-        )}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 pl-12">
-        {approaching ? (
+      {/* The one number that changes what you do next gets the size, the way
+          an airline app gives the hour before boarding the whole card. Loud
+          in scale, quiet in colour — the tint stays for genuinely urgent. */}
+      {approaching && (
+        <p className="pl-12 leading-none">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-              urgency === "urgent"
-                ? "bg-urgent-soft text-urgent"
-                : "bg-soon-soft text-soon"
+            className={`text-[19px] font-semibold tracking-tight ${
+              urgency === "urgent" ? "text-urgent" : "text-ink"
             }`}
           >
-            <i className="ti ti-clock-hour-4 text-[12px]" aria-hidden="true" />
-            {countdown(booking.cancelBy!).text} left to cancel
+            {countdown(booking.cancelBy!).text}
           </span>
-        ) : (
-          <RefundBadge booking={booking} />
-        )}
-        <span className="text-[12px] text-ink-soft">
+          <span className="ml-1.5 text-[13px] text-ink-soft">left to cancel</span>
+        </p>
+      )}
+
+      <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-12">
+        {!approaching && <RefundBadge booking={booking} />}
+        <span className="text-[13px] text-ink-soft">
           {formatEventDate(booking.eventAt)}
           {nights > 0 && ` · ${nights} night${nights === 1 ? "" : "s"}`}
         </span>
+        {price && (
+          <span className="font-mono text-[13px] text-ink-soft">{price}</span>
+        )}
         {(booking.sourceUrl || booking.cancelUrl) && (
-          <div className="ml-auto flex items-center gap-0.5">
+          <div className="ml-auto flex items-center gap-1.5">
             {booking.sourceUrl && (
               <a
                 href={booking.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                aria-label="View source email"
-                className="grid size-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-paper hover:text-ink"
+                className="flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
               >
-                <i className="ti ti-mail text-[16px]" aria-hidden="true" />
+                <i className="ti ti-mail text-[14px]" aria-hidden="true" />
+                Email
               </a>
             )}
             {booking.cancelUrl && (
@@ -113,10 +114,10 @@ export function BookingCard({
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                aria-label="View reservation"
-                className="grid size-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-paper hover:text-ink"
+                className="flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
               >
-                <i className="ti ti-external-link text-[16px]" aria-hidden="true" />
+                <i className="ti ti-external-link text-[14px]" aria-hidden="true" />
+                Manage
               </a>
             )}
           </div>

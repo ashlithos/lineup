@@ -132,12 +132,31 @@ export function scanInbox(): Candidate[] {
   ];
 }
 
+export async function extractFromImages(files: File[]): Promise<Candidate[]> {
+  const form = new FormData();
+  for (const f of files) form.append("images", f);
+  // No Content-Type header: the browser sets it with the multipart boundary.
+  return readCandidates(
+    await fetch("/api/extract", { method: "POST", body: form }),
+    "Screenshot",
+    "photo",
+  );
+}
+
 export async function extractFromText(text: string): Promise<Candidate[]> {
   const res = await fetch("/api/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   });
+  return readCandidates(res, "Pasted confirmation", "paste");
+}
+
+async function readCandidates(
+  res: Response,
+  sourceLabel: string,
+  source: "paste" | "photo",
+): Promise<Candidate[]> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || "Extraction failed");
@@ -156,14 +175,14 @@ export async function extractFromText(text: string): Promise<Candidate[]> {
     return {
       draft: {
         ...draft,
-        source: "paste",
+        source,
         // A row from an itinerary that still has to be reserved is not a
         // booking — it lands as "to book" until someone actually books it.
         ...(needsBooking ? { status: "tobook" as const } : {}),
       } as Candidate["draft"],
       confidence: (confidence as Candidate["confidence"]) ?? "check",
       missing: missing ?? [],
-      sourceLabel: "Pasted confirmation",
+      sourceLabel,
     };
   });
 }

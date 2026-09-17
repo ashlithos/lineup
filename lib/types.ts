@@ -35,7 +35,7 @@ export const COMPANION_OPTIONS = [
 ] as const;
 export type Companion = (typeof COMPANION_OPTIONS)[number]["value"];
 
-export type BookingSource = "manual" | "email" | "paste";
+export type BookingSource = "manual" | "email" | "paste" | "photo";
 
 export interface Booking {
   id: string;
@@ -71,7 +71,7 @@ export interface Booking {
   imageUrl?: string; // custom trip photo (overrides the stock one)
   checklist?: ChecklistItem[]; // trip plans: what's booked vs still to book
   companions?: string[]; // who you're going with (solo/partner/friends/parents)
-  source?: BookingSource; // how it got in — manual, email scan, or paste
+  source?: BookingSource; // how it got in — typed, email scan, paste, screenshot
   status: BookingStatus;
   createdAt: string;
   isDemo?: boolean;

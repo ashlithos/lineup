@@ -1,5 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+// One model for both paths, so a screenshot and a paste of the same
+// confirmation can't be read by two different readers.
+const MODEL = "claude-haiku-4-5";
+
 // One raw candidate as the model returns it (booking fields + meta).
 export interface RawCandidate {
   title: string;
@@ -53,10 +57,60 @@ export async function extractCandidatesFromText(
   const today = new Date().toISOString().slice(0, 10);
   try {
     const msg = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: MODEL,
       max_tokens: 1024,
       system: extractionSystem(today),
       messages: [{ role: "user", content: text.slice(0, 12000) }],
+    });
+    const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "{}";
+    const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+    return (JSON.parse(json).candidates ?? []) as RawCandidate[];
+  } catch {
+    return [];
+  }
+}
+
+/** What a screenshot adds that pasted text doesn't. */
+const SCREENSHOT_NOTE = `The input is one or more SCREENSHOTS of a confirmation — a phone photo of an email, a booking page, or a message. Read every visible field, including text inside images and banners.
+- Dates are often written as MM/DD/YYYY. Read them in that order unless the surrounding text makes DD/MM unmistakable.
+- A time like "02:00PM" means 14:00. Combine the date and the start time into eventAt.
+- "Arrive 30 minutes prior", "doors open", and check-in advice are NOT the start time. Keep the start time in eventAt and put the arrival advice in notes.
+- A reference or booking number ("Ref.", "Confirmation #") belongs in notes.
+- A name on the reservation belongs in notes, not in the title. The title is the place.
+- A spa, bath house, class, tour or treatment is category "event".
+- Screenshots are often cut off. If the total, the cancellation policy or the end time simply isn't visible, set it null and list it in "missing" — never infer one.`;
+
+export async function extractCandidatesFromImages(
+  images: { data: string; mediaType: string }[],
+): Promise<RawCandidate[]> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || !images.length) return [];
+  const anthropic = new Anthropic({ apiKey: key });
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const msg = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system: `${extractionSystem(today)}\n\n${SCREENSHOT_NOTE}`,
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...images.map((img) => ({
+              type: "image" as const,
+              source: {
+                type: "base64" as const,
+                media_type: img.mediaType as "image/png",
+                data: img.data,
+              },
+            })),
+            {
+              type: "text" as const,
+              text: "Extract every booking you can see in these screenshots.",
+            },
+          ],
+        },
+      ],
     });
     const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "{}";
     const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);

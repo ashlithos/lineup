@@ -26,6 +26,7 @@ import { ReviewSheet } from "@/components/ReviewSheet";
 import { PasteDialog } from "@/components/PasteDialog";
 import { SkeletonTrips } from "@/components/SkeletonCard";
 import { AddMenu } from "@/components/AddMenu";
+import { AttentionBar } from "@/components/AttentionBar";
 
 type Rail = "forward" | "plan" | "past";
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
@@ -493,6 +494,8 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      <AttentionBar bookings={upcoming} onOpen={openEdit} />
 
       {flash && (
         <div className="mt-5 flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-soft px-3.5 py-2.5 text-[13px] text-ok">

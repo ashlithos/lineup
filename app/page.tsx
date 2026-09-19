@@ -31,7 +31,7 @@ type Rail = "forward" | "plan" | "past";
 type Draft = Omit<Booking, "id" | "createdAt" | "status">;
 
 export default function Home() {
-  const { bookings, ready, add, update, remove, replaceAll, refresh } =
+  const { bookings, ready, load, retry, add, update, remove, replaceAll, refresh } =
     useBookings();
   const [refreshing, setRefreshing] = useState(false);
   const [rail, setRail] = useState<Rail>("forward");
@@ -673,6 +673,8 @@ export default function Home() {
               </div>
             )}
           </div>
+        ) : load === "failed" ? (
+          <LoadFailed onRetry={retry} />
         ) : bookings.length === 0 ? (
           <FirstRun
             onScan={handleScan}
@@ -1038,6 +1040,35 @@ export default function Home() {
         onClose={() => setReviewOpen(false)}
         onConfirm={handleConfirmReview}
       />
+    </div>
+  );
+}
+
+// The database answered badly, or didn't answer. Everything is still there —
+// saying "nothing in your lineup yet" here would be the app telling you your
+// trips are gone, which is the single worst thing it could get wrong.
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-line-strong bg-raised px-6 py-12 text-center">
+      <i
+        className="ti ti-cloud-off text-[28px] text-ink-faint"
+        aria-hidden="true"
+      />
+      <h2 className="mt-3 text-[19px] font-semibold text-ink">
+        Couldn&apos;t load your bookings
+      </h2>
+      <p className="mx-auto mt-1.5 max-w-sm text-[14px] leading-relaxed text-ink-soft">
+        They&apos;re safe — this is a connection problem between here and where
+        they&apos;re stored, not anything missing. It usually works on a second
+        try.
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
+      >
+        <i className="ti ti-refresh text-[16px]" aria-hidden="true" />
+        Try again
+      </button>
     </div>
   );
 }

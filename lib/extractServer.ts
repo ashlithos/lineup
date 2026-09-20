@@ -48,26 +48,76 @@ Rules:
 - If the text is marketing, a cancellation notice, a receipt for a completed/past thing, or not an upcoming booking, return {"candidates":[]}.`;
 }
 
+/**
+ * "The model read this and found no booking" and "the model never answered"
+ * are completely different facts, and collapsing them into an empty array
+ * made a rate-limited scan look like a mailbox full of junk. Callers that
+ * care get the difference.
+ */
+export type Extraction =
+  | { ok: true; candidates: RawCandidate[] }
+  | { ok: false; reason: string };
+
+// Overload, rate limit, gateway — the call deserves another go, not a verdict.
+const RETRYABLE = new Set([408, 409, 429, 500, 502, 503, 504]);
+
+async function readCandidates(
+  system: string,
+  content: Anthropic.MessageParam["content"],
+): Promise<Extraction> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { ok: false, reason: "no reader configured" };
+  const anthropic = new Anthropic({ apiKey: key });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const msg = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        system,
+        messages: [{ role: "user", content }],
+      });
+      const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start < 0 || end < start) {
+        return { ok: false, reason: "the reader didn't answer in JSON" };
+      }
+      const parsed = JSON.parse(raw.slice(start, end + 1)) as {
+        candidates?: RawCandidate[];
+      };
+      return { ok: true, candidates: parsed.candidates ?? [] };
+    } catch (err) {
+      const status =
+        err instanceof Anthropic.APIError ? err.status : undefined;
+      if (status && RETRYABLE.has(status) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+        continue;
+      }
+      if (err instanceof SyntaxError) {
+        return { ok: false, reason: "the reader's answer wasn't readable" };
+      }
+      return {
+        ok: false,
+        reason: status ? `the reader returned ${status}` : "the reader didn't answer",
+      };
+    }
+  }
+  return { ok: false, reason: "the reader kept timing out" };
+}
+
+export async function extractFromText(text: string): Promise<Extraction> {
+  if (text.trim().length < 20) return { ok: true, candidates: [] };
+  const today = new Date().toISOString().slice(0, 10);
+  return readCandidates(extractionSystem(today), text.slice(0, 12000));
+}
+
+/** Back-compat for callers that only want the happy path. */
 export async function extractCandidatesFromText(
   text: string,
 ): Promise<RawCandidate[]> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key || text.trim().length < 20) return [];
-  const anthropic = new Anthropic({ apiKey: key });
-  const today = new Date().toISOString().slice(0, 10);
-  try {
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system: extractionSystem(today),
-      messages: [{ role: "user", content: text.slice(0, 12000) }],
-    });
-    const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "{}";
-    const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
-    return (JSON.parse(json).candidates ?? []) as RawCandidate[];
-  } catch {
-    return [];
-  }
+  const out = await extractFromText(text);
+  return out.ok ? out.candidates : [];
 }
 
 /** What a screenshot adds that pasted text doesn't. */
@@ -80,42 +130,30 @@ const SCREENSHOT_NOTE = `The input is one or more SCREENSHOTS of a confirmation 
 - A spa, bath house, class, tour or treatment is category "event".
 - Screenshots are often cut off. If the total, the cancellation policy or the end time simply isn't visible, set it null and list it in "missing" — never infer one.`;
 
+export async function extractFromImages(
+  images: { data: string; mediaType: string }[],
+): Promise<Extraction> {
+  if (!images.length) return { ok: true, candidates: [] };
+  const today = new Date().toISOString().slice(0, 10);
+  return readCandidates(`${extractionSystem(today)}\n\n${SCREENSHOT_NOTE}`, [
+    ...images.map((img) => ({
+      type: "image" as const,
+      source: {
+        type: "base64" as const,
+        media_type: img.mediaType as "image/png",
+        data: img.data,
+      },
+    })),
+    {
+      type: "text" as const,
+      text: "Extract every booking you can see in these screenshots.",
+    },
+  ]);
+}
+
 export async function extractCandidatesFromImages(
   images: { data: string; mediaType: string }[],
 ): Promise<RawCandidate[]> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key || !images.length) return [];
-  const anthropic = new Anthropic({ apiKey: key });
-  const today = new Date().toISOString().slice(0, 10);
-  try {
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system: `${extractionSystem(today)}\n\n${SCREENSHOT_NOTE}`,
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...images.map((img) => ({
-              type: "image" as const,
-              source: {
-                type: "base64" as const,
-                media_type: img.mediaType as "image/png",
-                data: img.data,
-              },
-            })),
-            {
-              type: "text" as const,
-              text: "Extract every booking you can see in these screenshots.",
-            },
-          ],
-        },
-      ],
-    });
-    const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "{}";
-    const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
-    return (JSON.parse(json).candidates ?? []) as RawCandidate[];
-  } catch {
-    return [];
-  }
+  const out = await extractFromImages(images);
+  return out.ok ? out.candidates : [];
 }

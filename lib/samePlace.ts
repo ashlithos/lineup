@@ -65,3 +65,37 @@ export function sameOuting(a: Outing, b: Outing): boolean {
   if (ma && mb && Math.abs(ma - mb) > 120) return false;
   return true;
 }
+
+interface Groupable extends Outing {
+  id: string;
+  location?: string;
+  amount?: number | null;
+  sourceUrl?: string;
+  notes?: string;
+}
+
+/**
+ * Copies of one outing, grouped, keeper first. Four rows for one dinner are
+ * one problem, not six pairs of it.
+ *
+ * The keeper is the copy that knows the most — a real time above all, since a
+ * midnight timestamp is how "no time given" is stored, then whatever detail
+ * came along with it.
+ */
+export function outingGroups<T extends Groupable>(rows: T[]): T[][] {
+  const clusters: T[][] = [];
+  for (const b of rows) {
+    const home = clusters.find((c) => c.some((x) => sameOuting(x, b)));
+    if (home) home.push(b);
+    else clusters.push([b]);
+  }
+  const detail = (b: T) =>
+    (b.eventAt.slice(11, 16) === "00:00" ? 0 : 4) +
+    (b.location ? 1 : 0) +
+    (b.amount != null ? 1 : 0) +
+    (b.sourceUrl ? 1 : 0) +
+    (b.notes ? 1 : 0);
+  return clusters
+    .filter((g) => g.length > 1)
+    .map((g) => [...g].sort((a, b) => detail(b) - detail(a)));
+}

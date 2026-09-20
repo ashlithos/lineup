@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { googleAccessToken } from "@/lib/google";
-import { extractCandidatesFromText } from "@/lib/extractServer";
+import { extractFromText, type RawCandidate } from "@/lib/extractServer";
 import { isCancellation, sameBooking } from "@/lib/cancelMatch";
-import { sameOuting } from "@/lib/samePlace";
+import { placeWords, sameOuting } from "@/lib/samePlace";
 import { getIgnoredEmails } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +62,44 @@ function emailForModel(p: GmailPart | undefined): string {
 }
 
 
+/**
+ * A cancellation email that yielded no candidate still names its restaurant in
+ * the subject ("Online Booking Cancelation for Chez Boulay-bistro boréal") and
+ * usually repeats the date in the body. Match on the distinctive words of the
+ * name, and only act when exactly one live booking answers to them — cancelling
+ * the wrong dinner is far worse than missing one.
+ */
+function cancellationTarget(
+  subject: string,
+  body: string,
+  existing: { id: string; title: string; vendor?: string; eventAt: string; status: string }[],
+): { id: string; title: string; status: string } | null {
+  const CANCEL_WORDS = new Set([
+    "online", "cancelation", "cancellation", "cancelled", "canceled",
+    "cancel", "notice", "confirmation", "reservation",
+  ]);
+  const named = placeWords(subject).filter((w) => !CANCEL_WORDS.has(w));
+  if (!named.length) return null;
+
+  const live = existing.filter(
+    (b) => b.status === "upcoming" || b.status === "tobook",
+  );
+  let hits = live.filter((b) => {
+    const words = placeWords(b.title, b.vendor);
+    return words.length > 0 && words.every((w) => named.includes(w));
+  });
+
+  // More than one candidate? The body normally carries the date — use it.
+  if (hits.length > 1) {
+    const day = body.match(/\b(\d{4}-\d{2}-\d{2})\b/)?.[1];
+    if (day) {
+      const sameDay = hits.filter((b) => b.eventAt.slice(0, 10) === day);
+      if (sameDay.length) hits = sameDay;
+    }
+  }
+  return hits.length === 1 ? hits[0] : null;
+}
+
 export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const auth0 = await googleAccessToken();
@@ -108,29 +146,76 @@ export async function POST(req: Request) {
     eventAt: b.eventAt,
   }));
 
-  const perEmail = await Promise.all(
-    ids.map(async (id) => {
-      const m = (await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
-        { headers: auth },
-      ).then((r) => r.json())) as { payload?: GmailPart };
-      const subject = subjectOf(m.payload);
-      const cands = await extractCandidatesFromText(emailForModel(m.payload));
-      const cancels = isCancellation(subject);
-      // An email that yielded nothing is the interesting case: it matched the
-      // search, so it looked like a booking, and then vanished without a word.
-      if (!cands.length) return [{ c: null, id, cancels, subject }];
-      return cands.map((c) => ({ c, id, cancels, subject }));
-    }),
-  );
+  // Fifteen model calls at once is how a rate limit turns into nine emails
+  // that "couldn't be read". Three at a time finishes comfortably inside the
+  // 60s budget and actually gets answers.
+  const perEmail: {
+    c: RawCandidate | null;
+    id: string;
+    cancels: boolean;
+    subject: string;
+    failed: string | null;
+    body: string;
+  }[][] = [];
+  const queue = [...ids];
+  const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+    for (let id = queue.shift(); id; id = queue.shift()) {
+      perEmail.push(await readOne(id));
+    }
+  });
+
+  async function readOne(id: string) {
+    const m = (await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
+      { headers: auth },
+    ).then((r) => r.json())) as { payload?: GmailPart };
+    const subject = subjectOf(m.payload);
+    const body = emailForModel(m.payload);
+    const out = await extractFromText(body);
+    const cancels = isCancellation(subject);
+    const failed = out.ok ? null : out.reason;
+    const cands = out.ok ? out.candidates : [];
+    // An email that yielded nothing is the interesting case: it matched the
+    // search, so it looked like a booking, and then vanished without a word.
+    if (!cands.length) return [{ c: null, id, cancels, subject, failed, body }];
+    return cands.map((c) => ({ c, id, cancels, subject, failed, body }));
+  }
+
+  await Promise.all(workers);
 
   const added: string[] = [];
   const cancelled: string[] = [];
   // Anything the scan decided against, and why. Silence was indistinguishable
   // from "nothing new", which is the one thing it must never be mistaken for.
   const skipped: { subject: string; why: string }[] = [];
-  for (const { c, id, cancels, subject } of perEmail.flat()) {
+  // Emails the reader never managed to answer on. They are not junk and they
+  // are not done — the next scan must try them again.
+  const unread: string[] = [];
+  for (const { c, id, cancels, subject, failed, body } of perEmail.flat()) {
+    if (failed) {
+      unread.push(subject);
+      skipped.push({ subject, why: `${failed} — will try again next scan` });
+      continue;
+    }
     if (!c) {
+      // The reader is told to return nothing for a cancellation notice, so a
+      // cancellation almost never arrives with a candidate attached. Falling
+      // through here is why a cancelled dinner stayed on the timetable.
+      if (cancels) {
+        const hit = cancellationTarget(subject, body, existing);
+        if (hit) {
+          await fetch(`${origin}/api/bookings/${hit.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "cancelled" }),
+          });
+          hit.status = "cancelled";
+          cancelled.push(hit.title);
+        } else {
+          skipped.push({ subject, why: "a cancellation for nothing on file" });
+        }
+        continue;
+      }
       skipped.push({ subject, why: "couldn't read a booking out of it" });
       continue;
     }
@@ -209,6 +294,7 @@ export async function POST(req: Request) {
     added,
     cancelled,
     skipped,
+    unread: unread.length,
     leftAlone,
   });
 }

@@ -1,5 +1,5 @@
 import type { Booking } from "./types";
-import { localDate, localDayMs } from "./localtime";
+import { localDate, localDayMs, localStamp, nowStamp } from "./localtime";
 
 // The attention model, in code.
 // Urgency is driven ONLY by refundable + cancelBy. Type never affects it.
@@ -11,10 +11,10 @@ const HOUR = 1000 * 60 * 60;
 export const URGENT_HOURS = 48;
 export const SOON_HOURS = 24 * 7;
 
-export function getUrgency(b: Booking, now: number = Date.now()): Urgency {
+export function getUrgency(b: Booking, now: number = nowStamp()): Urgency {
   if (!b.refundable) return "locked"; // nothing to decide, ever
   if (!b.cancelBy) return "calm"; // refundable but no deadline noted yet
-  const hoursLeft = (new Date(b.cancelBy).getTime() - now) / HOUR;
+  const hoursLeft = (localStamp(b.cancelBy) - now) / HOUR;
   if (hoursLeft < 0) return "passed"; // free-cancel window already closed
   if (hoursLeft <= URGENT_HOURS) return "urgent";
   if (hoursLeft <= SOON_HOURS) return "soon";
@@ -23,7 +23,7 @@ export function getUrgency(b: Booking, now: number = Date.now()): Urgency {
 
 // An item belongs in "Needs attention" only if there's still a live decision:
 // refundable, with a cancel-by deadline that hasn't passed.
-export function needsAttention(b: Booking, now: number = Date.now()): boolean {
+export function needsAttention(b: Booking, now: number = nowStamp()): boolean {
   if (b.status !== "upcoming") return false;
   const u = getUrgency(b, now);
   return u === "urgent" || u === "soon" || u === "calm";
@@ -34,8 +34,8 @@ export interface Countdown {
   past: boolean;
 }
 
-export function countdown(iso: string, now: number = Date.now()): Countdown {
-  const diff = new Date(iso).getTime() - now;
+export function countdown(iso: string, now: number = nowStamp()): Countdown {
+  const diff = localStamp(iso) - now;
   const past = diff < 0;
   const abs = Math.abs(diff);
   const days = Math.floor(abs / (HOUR * 24));

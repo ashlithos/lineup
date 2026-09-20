@@ -59,3 +59,20 @@ export function durationMin(from: string, to: string): number | null {
 
 /** True when a stamp carries a real (non-UTC) offset, i.e. we know its zone. */
 export const hasOffset = (iso: string) => /[+-]\d{2}:\d{2}$/.test(iso) && !iso.endsWith("+00:00");
+
+/**
+ * Now, in the same space `localStamp` returns — the clock on the wall where
+ * the reader is, expressed as a UTC-anchored number.
+ *
+ * Comparing a stored booking time to `Date.now()` measures a wall-clock
+ * reading against a real instant, so every booking appears to happen at the
+ * viewer's UTC offset: four hours early in Quebec, eight in California. A
+ * flight at 12:55 was filed under "Past" at 08:55 local.
+ */
+export function nowStamp(at: Date = new Date()): number {
+  return (
+    Date.UTC(at.getFullYear(), at.getMonth(), at.getDate()) +
+    (at.getHours() * 60 + at.getMinutes()) * 60_000 +
+    at.getSeconds() * 1000
+  );
+}

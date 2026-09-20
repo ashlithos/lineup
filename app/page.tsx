@@ -13,6 +13,7 @@ import { touchesRange } from "@/lib/density";
 import { PlanCheckSheet } from "@/components/PlanCheckSheet";
 import { TripAgenda } from "@/components/TripAgenda";
 import { WeekGrid } from "@/components/WeekGrid";
+import { localStamp, nowStamp } from "@/lib/localtime";
 import { ToBookList } from "@/components/ToBookList";
 import { DuplicateBanner } from "@/components/DuplicateBanner";
 import { TripSidebar } from "@/components/TripSidebar";
@@ -51,7 +52,8 @@ export default function Home() {
   const [shareTripObj, setShareTripObj] = useState<Trip | null>(null);
   // The "still to book" items being handed to someone else.
   const [assigning, setAssigning] = useState<Booking[] | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  // Wall-clock now, to match how booking times are stored.
+  const [now, setNow] = useState(() => nowStamp());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Booking | null>(null);
   const [addPrefill, setAddPrefill] = useState<Partial<Booking> | null>(null);
@@ -75,7 +77,7 @@ export default function Home() {
   const [editName, setEditName] = useState("");
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
+    const t = setInterval(() => setNow(nowStamp()), 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -124,11 +126,8 @@ export default function Home() {
   const forwardBase = useMemo(
     () =>
       upcoming
-        .filter((b) => new Date(b.eventAt).getTime() >= now)
-        .sort(
-          (a, b) =>
-            new Date(a.eventAt).getTime() - new Date(b.eventAt).getTime(),
-        ),
+        .filter((b) => localStamp(b.eventAt) >= now)
+        .sort((a, b) => localStamp(a.eventAt) - localStamp(b.eventAt)),
     [upcoming, now],
   );
 
@@ -137,10 +136,10 @@ export default function Home() {
     const cutoff = now - 30 * 24 * 3600 * 1000;
     return upcoming
       .filter((b) => {
-        const t = new Date(b.eventAt).getTime();
+        const t = localStamp(b.eventAt);
         return t < now && t >= cutoff;
       })
-      .sort((a, b) => new Date(b.eventAt).getTime() - new Date(a.eventAt).getTime());
+      .sort((a, b) => localStamp(b.eventAt) - localStamp(a.eventAt));
   }, [upcoming, now]);
 
   const base =

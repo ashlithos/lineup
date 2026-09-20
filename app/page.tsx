@@ -14,6 +14,7 @@ import { PlanCheckSheet } from "@/components/PlanCheckSheet";
 import { TripAgenda } from "@/components/TripAgenda";
 import { WeekGrid } from "@/components/WeekGrid";
 import { ToBookList } from "@/components/ToBookList";
+import { DuplicateBanner } from "@/components/DuplicateBanner";
 import { TripSidebar } from "@/components/TripSidebar";
 import { PlanCard } from "@/components/PlanCard";
 import { TripPlanCard } from "@/components/TripPlanCard";
@@ -507,6 +508,11 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* Duplicates were findable only by opening Check my plan and tapping
+          through it. A stale copy of tonight's dinner sitting on the timetable
+          is worth one line at the top instead. */}
+      <DuplicateBanner bookings={bookings} onDelete={remove} />
 
       {hasDemo && (
         <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-soon/30 bg-soon-soft px-3.5 py-2.5">

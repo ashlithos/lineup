@@ -348,7 +348,11 @@ function render() {
 }
 
 app.ontoolresult = (params) => {
-  result = (params.structuredContent as Result | undefined) ?? null;
+  const data = params.structuredContent as Result | undefined;
+  // Only a radar or plans result redraws the view; a Keep/Cancel update
+  // ({ id, kept, status }) must not replace it.
+  if (data?.kind !== "radar" && data?.kind !== "plans") return;
+  result = data;
   if (result?.kind === "plans") view = result.view;
   heroId = result?.kind === "radar" ? (result.rows.find((x) => !x.kept) ?? result.rows[0])?.id ?? null : null;
   kept.clear();

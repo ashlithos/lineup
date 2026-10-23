@@ -23,16 +23,17 @@ Everything reuses `lib/`: `urgency`, `trips`, `freetime.buildWeek`, `density.bui
 
 Lineup has no accounts, so it borrows one login: Claude signs in through **Slowcart's Supabase project** (its OAuth 2.1 server and its `/oauth/consent` screen), and `lib/mcp/auth.ts` lets the token in only if its email is `MCP_OWNER_EMAIL`. Booking data is then read with Lineup's own service-role key, as the web app does. A valid login for anyone else gets a 401.
 
-### Environment variables (Vercel → lineup → Settings → Environment Variables)
+### Settings
 
-| Name | Value |
+Nothing new to set in Vercel. By default the door trusts Slowcart's Supabase project (its public URL and publishable key are in `lib/mcp/auth.ts`) and lets in only `REMINDER_TO_EMAIL`, the owner address Lineup already emails. To override, set any of these in Vercel → lineup → Environment Variables:
+
+| Name | Default |
 |---|---|
-| `MCP_AUTH_SUPABASE_URL` | Slowcart's Supabase URL (`https://iivgfzbliuaobcvvneqw.supabase.co`) |
-| `MCP_AUTH_SUPABASE_ANON_KEY` | Slowcart's anon/publishable key (safe to expose) |
-| `MCP_OWNER_EMAIL` | The email you sign in to Slowcart with |
-| `MCP_TIMEZONE` | Optional, default `America/Los_Angeles` |
+| `MCP_OWNER_EMAIL` | `REMINDER_TO_EMAIL` |
+| `MCP_AUTH_SUPABASE_URL` / `MCP_AUTH_SUPABASE_ANON_KEY` | Slowcart's project |
+| `MCP_TIMEZONE` | `America/Los_Angeles` |
 
-If any of the first three is missing, `/mcp` stays locked: it fails closed.
+If no owner email is set at all, `/mcp` stays locked: it fails closed.
 
 The Supabase OAuth server setup lives in Slowcart's `MCP.md`; do that once and it serves both apps.
 

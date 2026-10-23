@@ -7,18 +7,26 @@ import type { AuthInfo } from "@modelcontextprotocol/server";
 // Slowcart uses), and this file accepts that token only if it belongs to the
 // owner's email. One login covers every app's door.
 //
-//   MCP_AUTH_SUPABASE_URL       identity project URL (Slowcart's)
-//   MCP_AUTH_SUPABASE_ANON_KEY  its publishable/anon key
-//   MCP_OWNER_EMAIL             the only email allowed in (comma-separate to add more)
+//   MCP_AUTH_SUPABASE_URL       identity project URL (default: Slowcart's)
+//   MCP_AUTH_SUPABASE_ANON_KEY  its publishable key (default: Slowcart's)
+//   MCP_OWNER_EMAIL             the only email allowed in (comma-separate to
+//                               add more; default: REMINDER_TO_EMAIL, the
+//                               owner address Lineup already emails)
+//
+// The defaults are public values (the same URL and key Slowcart ships to
+// every browser), so the door works without new Vercel settings.
 
-const AUTH_URL = process.env.MCP_AUTH_SUPABASE_URL ?? "";
-const AUTH_ANON_KEY = process.env.MCP_AUTH_SUPABASE_ANON_KEY ?? "";
+const SLOWCART_URL = "https://iivgfzbliuaobcvvneqw.supabase.co";
+const SLOWCART_PUBLISHABLE_KEY = "sb_publishable_HS1W-NrAreZbdnJ7A5I_Cw_l7xzmdy-";
+
+const AUTH_URL = process.env.MCP_AUTH_SUPABASE_URL || SLOWCART_URL;
+const AUTH_ANON_KEY = process.env.MCP_AUTH_SUPABASE_ANON_KEY || SLOWCART_PUBLISHABLE_KEY;
 
 /** The issuer Claude is sent to for a token (RFC 8414 metadata lives under it). */
 export const AUTH_SERVER_URL = `${AUTH_URL}/auth/v1`;
 
 const owners = () =>
-  (process.env.MCP_OWNER_EMAIL ?? "")
+  (process.env.MCP_OWNER_EMAIL || process.env.REMINDER_TO_EMAIL || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
